@@ -2,20 +2,19 @@ from datetime import timedelta
 
 import pytest
 
-from app.domain.enums import IncidentStatus, Level
+from app.domain.enums import IncidentStatus
 from app.domain.exceptions import InvalidStateTransitionError
 from app.domain.intelligence.correlation_detector import CorrelationDetector
 from app.domain.intelligence.duplicate_detector import DuplicateDetector
 from app.domain.intelligence.escalation_policy import EscalationPolicy
 from app.domain.models.user import User
-from app.domain.sla.sla_calculator import SlaCalculator
 from app.domain.state import states
 from app.domain.state.incident_state import IncidentState
 from app.domain.strategies.assignment import (
     AssignmentStrategy, LoadBasedAssignment, SkillBasedAssignment, WeightedRecommendationStrategy,
 )
 from app.domain.strategies.priority import (
-    PriorityInput, PriorityStrategy, RuleBasedPriorityStrategy, WeightedScorePriorityStrategy,
+    PriorityStrategy, RuleBasedPriorityStrategy, WeightedScorePriorityStrategy,
 )
 from tests.domain.helpers import T0, make_incident
 
@@ -55,15 +54,10 @@ def test_strategy_interfaces_are_abstract_and_names_are_stable():
         "skill_based", "load_based", "weighted_recommendation"]
 
 
-def test_logic_classes_are_stubs_until_their_task():
+def test_remaining_logic_classes_are_stubs_until_their_task():
     inc = make_incident()
-    data = PriorityInput(Level.HIGH, Level.HIGH, Level.HIGH, 1)
-    with pytest.raises(NotImplementedError):
-        WeightedScorePriorityStrategy().calculate(data)
     with pytest.raises(NotImplementedError):
         SkillBasedAssignment().select(inc, [])
-    with pytest.raises(NotImplementedError):
-        SlaCalculator().evaluate(inc, T0)
     with pytest.raises(NotImplementedError):
         DuplicateDetector().find_similar(inc, [])
     with pytest.raises(NotImplementedError):

@@ -17,7 +17,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.domain.enums import EscalationLevel, IncidentEventType, IncidentStatus, NoteType, Priority
+from app.domain.enums import (
+    EscalationLevel, IncidentEventType, IncidentStatus, NoteType, Priority, SlaEventType, SlaStatus,
+)
 from app.domain.exceptions import (
     InvalidInputError, InvalidStateTransitionError, TechnicianUnavailableError,
     WorkloadExceededError,
@@ -25,12 +27,20 @@ from app.domain.exceptions import (
 from app.domain.intelligence.escalation_policy import EscalationDecision
 from app.domain.models._validation import require_instance, require_int_min, require_text
 from app.domain.models.incident_parts import Feedback, InvestigationNote, Resolution, SlaTracker
-from app.domain.models.user import Technician
+from app.domain.models.user import Technician, User
+from app.domain.sla.sla_calculator import SlaCheckResult
 from app.domain.state import permissions as perm
 from app.domain.state.incident_state import IncidentState
 from app.domain.strategies.priority import PriorityResult
 
 E = IncidentEventType
+
+_SLA_EVENTS = {
+    SlaEventType.RESPONSE_WARNING: ("response", "response_deadline", E.SLA_WARNING),
+    SlaEventType.RESOLUTION_WARNING: ("resolution", "resolution_deadline", E.SLA_WARNING),
+    SlaEventType.RESPONSE_VIOLATED: ("response", "response_deadline", E.SLA_VIOLATED),
+    SlaEventType.RESOLUTION_VIOLATED: ("resolution", "resolution_deadline", E.SLA_VIOLATED),
+}
 
 
 def _brief(text: str, limit: int = 120) -> str:
@@ -48,6 +58,17 @@ def _check_can_take(technician, active_count) -> None:
         raise WorkloadExceededError(
             f"{technician.full_name} already has {active_count} active incidents "
             f"(maximum {technician.max_workload})")
+
+
+def _carry_over_violations(old: SlaTracker | None, new: SlaTracker) -> SlaTracker:
+    """A missed deadline is history: it survives a change of priority. Warnings restart,
+    because the new deadlines open new warning windows."""
+    response_violated = new.response_violated or bool(old and old.response_violated)
+    resolution_violated = new.resolution_violated or bool(old and old.resolution_violated)
+    status = SlaStatus.VIOLATED if (response_violated or resolution_violated) else new.status
+    return SlaTracker(new.response_deadline, new.resolution_deadline,
+                      new.response_warned, new.resolution_warned,
+                      response_violated, resolution_violated, status)
 
 
 def _submit_feedback(incident, actor, at, rating, comment) -> None:
@@ -99,7 +120,7 @@ class OpenState(IncidentState):
         if priority is incident.priority:
             raise InvalidInputError(f"Priority is already {priority.name}", "priority")
         old = incident.priority
-        incident._set(priority=priority, sla_tracker=new_sla_tracker)
+        incident._set(priority=priority, sla_tracker=_carry_over_violations(incident.sla_tracker, new_sla_tracker))
         incident._fire(E.PRIORITY_CHANGED, actor, incident.status,
                        f"Priority changed from {old.name} to {priority.name}: {reason}", at)
 
@@ -115,7 +136,28 @@ class OpenState(IncidentState):
                        f"Possible duplicate of {other} (similarity {score:.2f})", at)
 
     def apply_sla_result(self, incident, at, result) -> None:
-        raise NotImplementedError("Implemented in task T6")
+        """Record the outcome of an SLA check: flags, overall status, and one event per new
+        warning or violation. Called by the scheduled job with the output of SlaCalculator."""
+        tracker = incident.sla_tracker
+        if tracker is None:                      # not classified yet: no SLA to update
+            self._illegal("apply_sla_result")
+        require_instance(result, SlaCheckResult, "result")
+        for event_type in result.new_events:
+            require_instance(event_type, SlaEventType, "result")
+        new = set(result.new_events)
+        tracker._apply(
+            result.status,
+            tracker.response_warned or SlaEventType.RESPONSE_WARNING in new,
+            tracker.resolution_warned or SlaEventType.RESOLUTION_WARNING in new,
+            tracker.response_violated or SlaEventType.RESPONSE_VIOLATED in new,
+            tracker.resolution_violated or SlaEventType.RESOLUTION_VIOLATED in new)
+        for event_type in dict.fromkeys(result.new_events):          # in order, no repeats
+            kind, deadline, fired = _SLA_EVENTS[event_type]
+            when = getattr(tracker, deadline)
+            text = (f"SLA warning: the {kind} deadline ({when:%Y-%m-%d %H:%M}) is approaching"
+                    if fired is E.SLA_WARNING else
+                    f"SLA violated: the {kind} deadline ({when:%Y-%m-%d %H:%M}) was missed")
+            incident._fire(fired, User.system(), incident.status, text, at)
 
 
 class NewState(OpenState):
@@ -135,7 +177,7 @@ class NewState(OpenState):
         previous = incident.status
         p = priority_result.priority
         incident._set(priority=p, priority_score=priority_result.score,
-                      sla_tracker=sla_tracker, status=IncidentStatus.CLASSIFIED)
+                      sla_tracker=sla_tracker.copy(), status=IncidentStatus.CLASSIFIED)
         incident._fire(E.CLASSIFIED, actor, previous,
                        f"Classified as {incident.category.name}; priority {p.name} ({p.label}): "
                        f"{priority_result.explanation}", at)

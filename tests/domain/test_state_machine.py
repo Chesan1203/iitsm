@@ -405,7 +405,8 @@ def test_change_priority_swaps_priority_and_sla_tracker():
     with pytest.raises(InvalidInputError):
         inc.change_priority(make_admin(), at(5), Priority.P1, "same priority", tracker)
     inc.change_priority(make_admin(), at(5), Priority.P2, "Lower business impact", tracker)
-    assert inc.priority is Priority.P2 and inc.sla_tracker is tracker and inc.priority_score == 27
+    assert inc.priority is Priority.P2 and inc.priority_score == 27
+    assert inc.sla_tracker is not tracker and inc.sla_tracker == tracker      # a private copy
 
 
 def test_possible_duplicate_flagging():

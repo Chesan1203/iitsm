@@ -9,7 +9,7 @@ from app.domain.models.user import User
 
 
 class SlaTracker:
-    """Owned by an Incident. Only the Incident may change it (via _apply)."""
+    """Owned by an Incident. Only the Incident's state classes change it (via _apply)."""
 
     def __init__(self, response_deadline: datetime, resolution_deadline: datetime,
                  response_warned: bool = False, resolution_warned: bool = False,
@@ -40,7 +40,7 @@ class SlaTracker:
 
     def _apply(self, status: SlaStatus, response_warned: bool, resolution_warned: bool,
                response_violated: bool, resolution_violated: bool) -> None:
-        """Only Incident.apply_sla_result may call this."""
+        """Only the state classes (via Incident.apply_sla_result) may call this."""
         self._status = require_instance(status, SlaStatus, "status")
         self._response_warned = bool(response_warned)
         self._resolution_warned = bool(resolution_warned)

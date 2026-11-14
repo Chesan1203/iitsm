@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 
+from app.domain.business_rules import BusinessRules
 from app.domain.enums import AdminLevel, IncidentStatus, Level, Priority
 from app.domain.models.category import Category
 from app.domain.models.incident import Incident
 from app.domain.models.incident_parts import Resolution, SlaTracker
 from app.domain.models.it_service import ITService
+from app.domain.models.sla import SlaPolicy, SlaTarget
 from app.domain.models.snapshot import IncidentSnapshot
 from app.domain.models.user import Administrator, Employee, Technician
 from app.domain.strategies.priority import PriorityResult
@@ -71,3 +73,9 @@ def make_incident_in(status: IncidentStatus) -> Incident:
         sla_tracker=make_tracker() if idx >= 1 else None,
     )
     return Incident.restore(snapshot)
+
+
+def make_default_policy() -> SlaPolicy:
+    """The default SLA policy from the business rules (P1: 5 min / 30 min, ...)."""
+    targets = {p: SlaTarget(r, s) for p, (r, s) in BusinessRules.DEFAULT_SLA_TARGET_MINUTES.items()}
+    return SlaPolicy("Default", True, targets)

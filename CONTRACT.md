@@ -40,6 +40,7 @@ Also enforced: domain never reads the clock (take `at`/`now` as a parameter), do
   `IncidentStateFactory.for_status` on demand (not stored), which is what makes `Incident.restore` work for any status.
 - `Incident.has_pending_info_request` (read-only): true when the latest information note is an unanswered INFO_REQUEST.
 - Permission helpers in `app/domain/state/permissions.py`; state behaviour decisions in `docs/domain_decisions.md`.
+- `SlaEventType.WARNING` was split into `RESPONSE_WARNING` and `RESOLUTION_WARNING` (T6, see `CONTRACT_CHANGES.md` and `docs/priority_and_sla_rules.md`).
 - `SimulatedTimeProvider.advance(timedelta)` / `reset()` / `offset` (implemented now, task T1).
 - Strategy names (used as registry keys and in the admin UI): priority `weighted_score`, `rule_based`;
   assignment `skill_based`, `load_based`, `weighted_recommendation`.
@@ -48,7 +49,6 @@ Also enforced: domain never reads the clock (take `at`/`now` as a parameter), do
 
 ## Known open points (decide before relying on them)
 - `SlaPolicyRequest` has no `id`, so `save_sla_policy` cannot say which policy to update.
-- `SlaEventType` has a single `WARNING` although the tracker keeps separate response/resolution warned flags.
 - `list_for_user(actor, limit)` has no default `limit`.
 
 ## Settings (`app/config.py`)
@@ -66,7 +66,7 @@ Also enforced: domain never reads the clock (take `at`/`now` as a parameter), do
 - `NoteType`: INVESTIGATION, INFO_REQUEST, INFO_RESPONSE
 - `Priority`: P1=1, P2=2, P3=3, P4=4
 - `Role`: EMPLOYEE, TECHNICIAN, ADMINISTRATOR
-- `SlaEventType`: WARNING, RESPONSE_VIOLATED, RESOLUTION_VIOLATED
+- `SlaEventType`: RESPONSE_WARNING, RESOLUTION_WARNING, RESPONSE_VIOLATED, RESOLUTION_VIOLATED
 - `SlaStatus`: ON_TRACK, WARNING, VIOLATED, MET
 
 `Priority.label`: P1 Critical, P2 High, P3 Medium, P4 Low.
@@ -205,7 +205,7 @@ Read-only properties: `ticket_number`, `title`, `description`, `reporter`, `cate
 
 Plumbing: `assign_identity(id: 'int', ticket_number: 'str') -> 'None'`, `add_observer(observer: 'IncidentObserver') -> 'None'`, `snapshot() -> 'IncidentSnapshot'`, `restore(cls, snapshot: 'IncidentSnapshot') -> "'Incident'"`
 
-Behaviour methods (each delegates to the current state object; `apply_sla_result` arrives in T6):
+Behaviour methods (each delegates to the current state object):
 - `record_creation(actor: 'User', at: 'datetime') -> 'None'`
 - `classify(actor: 'User', at: 'datetime', priority_result: 'PriorityResult', sla_tracker: 'SlaTracker') -> 'None'`
 - `assign_to(actor: 'User', at: 'datetime', technician: 'Technician', active_count: 'int') -> 'None'`
@@ -255,6 +255,7 @@ Fields: `score`, `priority`, `explanation`
 - `calculate(data: app.domain.strategies.priority.PriorityInput) -> app.domain.strategies.priority.PriorityResult`
 
 ### `RuleBasedPriorityStrategy`(PriorityStrategy)  <sub>app.domain.strategies.priority</sub>
+Constructor: `RuleBasedPriorityStrategy()`
 - `name` (property)
 - `calculate(data: app.domain.strategies.priority.PriorityInput) -> app.domain.strategies.priority.PriorityResult`
 
