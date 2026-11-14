@@ -41,6 +41,8 @@ Also enforced: domain never reads the clock (take `at`/`now` as a parameter), do
 - `Incident.has_pending_info_request` (read-only): true when the latest information note is an unanswered INFO_REQUEST.
 - Permission helpers in `app/domain/state/permissions.py`; state behaviour decisions in `docs/domain_decisions.md`.
 - `SlaEventType.WARNING` was split into `RESPONSE_WARNING` and `RESOLUTION_WARNING` (T6, see `CONTRACT_CHANGES.md` and `docs/priority_and_sla_rules.md`).
+- `AssignmentStrategy.select` is concrete (the first technician of `rank`, or None); strategies implement `rank` and `name`.
+- `TechnicianCandidate` validates its fields; `EscalationPolicy`, `DuplicateDetector` and `CorrelationDetector` semantics are in `docs/assignment_and_intelligence_rules.md`.
 - `SimulatedTimeProvider.advance(timedelta)` / `reset()` / `offset` (implemented now, task T1).
 - Strategy names (used as registry keys and in the admin UI): priority `weighted_score`, `rule_based`;
   assignment `skill_based`, `load_based`, `weighted_recommendation`.
@@ -260,23 +262,20 @@ Constructor: `RuleBasedPriorityStrategy()`
 - `calculate(data: app.domain.strategies.priority.PriorityInput) -> app.domain.strategies.priority.PriorityResult`
 
 ### `AssignmentStrategy`(ABC)  <sub>app.domain.strategies.assignment</sub>
-- `select(incident: 'Incident', candidates: 'list[TechnicianCandidate]') -> 'Technician | None'`
 - `rank(incident: 'Incident', candidates: 'list[TechnicianCandidate]') -> 'list[RankedTechnician]'`
 - `name` (property)
+- `select(incident: 'Incident', candidates: 'list[TechnicianCandidate]') -> 'Technician | None'`
 
 ### `SkillBasedAssignment`(AssignmentStrategy)  <sub>app.domain.strategies.assignment</sub>
 - `name` (property)
-- `select(incident, candidates)`
 - `rank(incident, candidates)`
 
 ### `LoadBasedAssignment`(AssignmentStrategy)  <sub>app.domain.strategies.assignment</sub>
 - `name` (property)
-- `select(incident, candidates)`
 - `rank(incident, candidates)`
 
 ### `WeightedRecommendationStrategy`(AssignmentStrategy)  <sub>app.domain.strategies.assignment</sub>
 - `name` (property)
-- `select(incident, candidates)`
 - `rank(incident, candidates)`
 
 ### `SlaCheckResult`  <sub>app.domain.sla.sla_calculator</sub>

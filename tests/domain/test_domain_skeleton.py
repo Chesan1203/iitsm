@@ -1,12 +1,7 @@
-from datetime import timedelta
-
 import pytest
 
 from app.domain.enums import IncidentStatus
 from app.domain.exceptions import InvalidStateTransitionError
-from app.domain.intelligence.correlation_detector import CorrelationDetector
-from app.domain.intelligence.duplicate_detector import DuplicateDetector
-from app.domain.intelligence.escalation_policy import EscalationPolicy
 from app.domain.models.user import User
 from app.domain.state import states
 from app.domain.state.incident_state import IncidentState
@@ -42,7 +37,6 @@ def test_every_action_is_illegal_by_default_with_a_clear_message():
     assert str(e.value) == "Cannot start investigating an incident that is CLOSED"
 
 
-
 def test_strategy_interfaces_are_abstract_and_names_are_stable():
     for abstract in (PriorityStrategy, AssignmentStrategy):
         with pytest.raises(TypeError):
@@ -52,15 +46,3 @@ def test_strategy_interfaces_are_abstract_and_names_are_stable():
     assert [s().name for s in (SkillBasedAssignment, LoadBasedAssignment,
                                WeightedRecommendationStrategy)] == [
         "skill_based", "load_based", "weighted_recommendation"]
-
-
-def test_remaining_logic_classes_are_stubs_until_their_task():
-    inc = make_incident()
-    with pytest.raises(NotImplementedError):
-        SkillBasedAssignment().select(inc, [])
-    with pytest.raises(NotImplementedError):
-        DuplicateDetector().find_similar(inc, [])
-    with pytest.raises(NotImplementedError):
-        EscalationPolicy().evaluate(inc, T0 + timedelta(minutes=1))
-    with pytest.raises(NotImplementedError):
-        CorrelationDetector().find_groups([], T0)
