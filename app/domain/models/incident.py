@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from app.domain.enums import (
     EscalationLevel, IncidentEventType, IncidentStatus, Level, NoteType, Priority,
 )
+from app.domain.events import IncidentEvent
 from app.domain.exceptions import InvalidInputError
 from app.domain.models._entity import Entity
 from app.domain.models._validation import (
@@ -24,6 +26,8 @@ if TYPE_CHECKING:
     from app.domain.sla.sla_calculator import SlaCheckResult
     from app.domain.state.incident_state import IncidentState
     from app.domain.strategies.priority import PriorityResult
+
+logger = logging.getLogger(__name__)
 
 _ACTIVE_STATUSES = frozenset({IncidentStatus.ASSIGNED, IncidentStatus.ACKNOWLEDGED,
                               IncidentStatus.IN_PROGRESS})
@@ -225,7 +229,22 @@ class Incident(Entity):
 
     def _fire(self, event_type: IncidentEventType, actor: User,
               previous_status: IncidentStatus | None, description: str, at: datetime) -> None:
-        """Announce an event to the observers. Wired up in task T4 (currently a no-op)."""
+        """Announce what just happened to every observer, in registration order.
+
+        Called by a state AFTER the change is complete, so observers see the new state.
+        An observer that fails is logged and skipped: the incident change stands and the
+        remaining observers still run.
+        """
+        event = IncidentEvent(incident=self, event_type=event_type, actor=actor,
+                              previous_status=previous_status, new_status=self._status,
+                              description=description, timestamp=at)
+        for observer in list(self._observers):      # a copy: observers may attach others
+            try:
+                observer.on_event(event)
+            except Exception:
+                logger.exception("Observer %s failed on %s for incident %s",
+                                 type(observer).__name__, event_type.name,
+                                 self._ticket_number or "(unsaved)")
 
     # ---- behaviour: every action is delegated to the current state -------
     def record_creation(self, actor: User, at: datetime) -> None:
