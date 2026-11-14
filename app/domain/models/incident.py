@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from app.domain.enums import EscalationLevel, IncidentStatus, Level, NoteType, Priority
+from app.domain.enums import (
+    EscalationLevel, IncidentEventType, IncidentStatus, Level, NoteType, Priority,
+)
+from app.domain.exceptions import InvalidInputError
 from app.domain.models._entity import Entity
 from app.domain.models._validation import (
     require_instance, require_int_min, require_text,
@@ -14,16 +17,17 @@ from app.domain.models.it_service import ITService
 from app.domain.models.snapshot import IncidentSnapshot
 from app.domain.models.user import Technician, User
 from app.domain.observer import IncidentObserver
+from app.domain.state.state_factory import IncidentStateFactory
 
 if TYPE_CHECKING:
     from app.domain.intelligence.escalation_policy import EscalationDecision
     from app.domain.sla.sla_calculator import SlaCheckResult
+    from app.domain.state.incident_state import IncidentState
     from app.domain.strategies.priority import PriorityResult
 
 _ACTIVE_STATUSES = frozenset({IncidentStatus.ASSIGNED, IncidentStatus.ACKNOWLEDGED,
                               IncidentStatus.IN_PROGRESS})
 
-_NOT_YET = "Behaviour is implemented in task T3 (state pattern)"
 
 
 class Incident(Entity):
@@ -186,60 +190,97 @@ class Incident(Entity):
     def __repr__(self) -> str:
         return f"Incident({self._ticket_number or 'unsaved'}, {self._status.name}, {self._title!r})"
 
-    # ---- behaviour (stubs until T3) --------------------------------------
+    @property
+    def has_pending_info_request(self) -> bool:
+        """True when the latest information note is a question the reporter has not answered."""
+        for note in reversed(self._notes):
+            if note.note_type in (NoteType.INFO_REQUEST, NoteType.INFO_RESPONSE):
+                return note.note_type is NoteType.INFO_REQUEST
+        return False
+
+    # ---- internals used only by the state classes (app/domain/state/) ---------
+    # Python has no 'package-private', so this is a convention: nothing outside
+    # app/domain/state/ may call the underscore-prefixed methods below.
+    _MUTABLE_FIELDS = frozenset({
+        "status", "priority", "priority_score", "assigned_technician", "assigned_at",
+        "acknowledged_at", "resolved_at", "verified_at", "closed_at", "escalation_level",
+        "possible_duplicate_of", "resolution", "feedback", "sla_tracker",
+    })
+
+    @property
+    def _state(self) -> "IncidentState":
+        """The state object for the current status (derived, never stored)."""
+        return IncidentStateFactory.for_status(self._status)
+
+    def _set(self, **changes) -> None:
+        """Change whitelisted fields, all or nothing."""
+        unknown = set(changes) - self._MUTABLE_FIELDS
+        if unknown:
+            raise InvalidInputError(f"Cannot change incident field(s): {sorted(unknown)}")
+        for name, value in changes.items():
+            setattr(self, f"_{name}", value)
+
+    def _add_note(self, note: InvestigationNote) -> None:
+        self._notes.append(note)
+
+    def _fire(self, event_type: IncidentEventType, actor: User,
+              previous_status: IncidentStatus | None, description: str, at: datetime) -> None:
+        """Announce an event to the observers. Wired up in task T4 (currently a no-op)."""
+
+    # ---- behaviour: every action is delegated to the current state -------
     def record_creation(self, actor: User, at: datetime) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.record_creation(self, actor, at)
 
     def classify(self, actor: User, at: datetime, priority_result: PriorityResult,
                  sla_tracker: SlaTracker) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.classify(self, actor, at, priority_result, sla_tracker)
 
     def assign_to(self, actor: User, at: datetime, technician: Technician, active_count: int) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.assign_to(self, actor, at, technician, active_count)
 
     def reassign(self, actor: User, at: datetime, technician: Technician, active_count: int) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.reassign(self, actor, at, technician, active_count)
 
     def acknowledge(self, actor: User, at: datetime) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.acknowledge(self, actor, at)
 
     def start_investigation(self, actor: User, at: datetime) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.start_investigation(self, actor, at)
 
     def add_note(self, actor: User, at: datetime, text: str, note_type: NoteType) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.add_note(self, actor, at, text, note_type)
 
     def request_info(self, actor: User, at: datetime, question: str) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.request_info(self, actor, at, question)
 
     def respond_to_info(self, actor: User, at: datetime, answer: str) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.respond_to_info(self, actor, at, answer)
 
     def resolve(self, actor: User, at: datetime, summary: str, details: str) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.resolve(self, actor, at, summary, details)
 
     def verify(self, actor: User, at: datetime) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.verify(self, actor, at)
 
     def reject_resolution(self, actor: User, at: datetime, reason: str) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.reject_resolution(self, actor, at, reason)
 
     def close(self, actor: User, at: datetime) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.close(self, actor, at)
 
     def submit_feedback(self, actor: User, at: datetime, rating: int, comment: str) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.submit_feedback(self, actor, at, rating, comment)
 
     def escalate(self, actor: User, at: datetime, decision: EscalationDecision) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.escalate(self, actor, at, decision)
 
     def change_priority(self, actor: User, at: datetime, priority: Priority, reason: str,
                         new_sla_tracker: SlaTracker) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.change_priority(self, actor, at, priority, reason, new_sla_tracker)
 
     def mark_possible_duplicate(self, actor: User, at: datetime, other_ticket_number: str,
                                 score: float) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.mark_possible_duplicate(self, actor, at, other_ticket_number, score)
 
     def apply_sla_result(self, at: datetime, result: SlaCheckResult) -> None:
-        raise NotImplementedError(_NOT_YET)
+        self._state.apply_sla_result(self, at, result)

@@ -37,7 +37,9 @@ Also enforced: domain never reads the clock (take `at`/`now` as a parameter), do
 - `IncidentSnapshot` holds objects (reporter, technician, service, category), not ids; construct with keywords.
 - `SlaTracker.copy()`; `snapshot()` returns a copy of the tracker so it is never aliased.
 - `IncidentState` subclasses expose `status`; state objects are derived from `incident.status` through
-  `IncidentStateFactory.for_status` on demand (not stored), so `Incident.restore` works before T3.
+  `IncidentStateFactory.for_status` on demand (not stored), which is what makes `Incident.restore` work for any status.
+- `Incident.has_pending_info_request` (read-only): true when the latest information note is an unanswered INFO_REQUEST.
+- Permission helpers in `app/domain/state/permissions.py`; state behaviour decisions in `docs/domain_decisions.md`.
 - `SimulatedTimeProvider.advance(timedelta)` / `reset()` / `offset` (implemented now, task T1).
 - Strategy names (used as registry keys and in the admin UI): priority `weighted_score`, `rule_based`;
   assignment `skill_based`, `load_based`, `weighted_recommendation`.
@@ -199,11 +201,11 @@ Fields: `incident`, `event_type`, `actor`, `previous_status`, `new_status`, `des
 
 Constructor: `Incident(title: 'str', description: 'str', reporter: 'User', category: 'Category', affected_service: 'ITService', impact: 'Level', urgency: 'Level', affected_users: 'int', created_at: 'datetime')`
 
-Read-only properties: `ticket_number`, `title`, `description`, `reporter`, `category`, `affected_service`, `impact`, `urgency`, `affected_users`, `priority`, `priority_score`, `status`, `created_at`, `assigned_technician`, `assigned_at`, `acknowledged_at`, `resolved_at`, `verified_at`, `closed_at`, `escalation_level`, `possible_duplicate_of`, `resolution`, `feedback`, `sla_tracker`, `notes`, `is_open`, `is_active`
+Read-only properties: `ticket_number`, `title`, `description`, `reporter`, `category`, `affected_service`, `impact`, `urgency`, `affected_users`, `priority`, `priority_score`, `status`, `created_at`, `assigned_technician`, `assigned_at`, `acknowledged_at`, `resolved_at`, `verified_at`, `closed_at`, `escalation_level`, `possible_duplicate_of`, `resolution`, `feedback`, `sla_tracker`, `notes`, `is_open`, `is_active`, `has_pending_info_request`
 
 Plumbing: `assign_identity(id: 'int', ticket_number: 'str') -> 'None'`, `add_observer(observer: 'IncidentObserver') -> 'None'`, `snapshot() -> 'IncidentSnapshot'`, `restore(cls, snapshot: 'IncidentSnapshot') -> "'Incident'"`
 
-Behaviour methods (bodies arrive in T3/T6/T8; signatures are final):
+Behaviour methods (each delegates to the current state object; `apply_sla_result` arrives in T6):
 - `record_creation(actor: 'User', at: 'datetime') -> 'None'`
 - `classify(actor: 'User', at: 'datetime', priority_result: 'PriorityResult', sla_tracker: 'SlaTracker') -> 'None'`
 - `assign_to(actor: 'User', at: 'datetime', technician: 'Technician', active_count: 'int') -> 'None'`

@@ -11,7 +11,6 @@ from app.domain.models.user import User
 from app.domain.sla.sla_calculator import SlaCalculator
 from app.domain.state import states
 from app.domain.state.incident_state import IncidentState
-from app.domain.state.state_factory import IncidentStateFactory
 from app.domain.strategies.assignment import (
     AssignmentStrategy, LoadBasedAssignment, SkillBasedAssignment, WeightedRecommendationStrategy,
 )
@@ -44,10 +43,6 @@ def test_every_action_is_illegal_by_default_with_a_clear_message():
     assert str(e.value) == "Cannot start investigating an incident that is CLOSED"
 
 
-def test_factory_is_still_a_stub():
-    with pytest.raises(NotImplementedError):
-        IncidentStateFactory.for_status(IncidentStatus.NEW)
-
 
 def test_strategy_interfaces_are_abstract_and_names_are_stable():
     for abstract in (PriorityStrategy, AssignmentStrategy):
@@ -75,9 +70,3 @@ def test_logic_classes_are_stubs_until_their_task():
         EscalationPolicy().evaluate(inc, T0 + timedelta(minutes=1))
     with pytest.raises(NotImplementedError):
         CorrelationDetector().find_groups([], T0)
-
-
-def test_incident_behaviour_methods_are_stubs_until_t3():
-    inc = make_incident()
-    with pytest.raises(NotImplementedError):
-        inc.acknowledge(User.system(), T0)
