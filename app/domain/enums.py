@@ -1,0 +1,103 @@
+from enum import Enum
+
+
+class Role(Enum):
+    EMPLOYEE = "EMPLOYEE"
+    TECHNICIAN = "TECHNICIAN"
+    ADMINISTRATOR = "ADMINISTRATOR"
+
+
+class AdminLevel(Enum):
+    TEAM_LEAD = "TEAM_LEAD"
+    SYSTEM_ADMIN = "SYSTEM_ADMIN"
+    IT_MANAGER = "IT_MANAGER"
+
+
+class Level(Enum):
+    """Impact, urgency and business criticality."""
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
+
+class Priority(Enum):
+    P1 = 1
+    P2 = 2
+    P3 = 3
+    P4 = 4
+
+    @property
+    def label(self) -> str:
+        return _PRIORITY_LABELS[self]
+
+
+_PRIORITY_LABELS = {
+    Priority.P1: "Critical",
+    Priority.P2: "High",
+    Priority.P3: "Medium",
+    Priority.P4: "Low",
+}
+
+
+class IncidentStatus(Enum):
+    NEW = "NEW"
+    CLASSIFIED = "CLASSIFIED"
+    ASSIGNED = "ASSIGNED"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    IN_PROGRESS = "IN_PROGRESS"
+    RESOLVED = "RESOLVED"
+    VERIFIED = "VERIFIED"
+    CLOSED = "CLOSED"
+
+
+class SlaStatus(Enum):
+    ON_TRACK = "ON_TRACK"
+    WARNING = "WARNING"
+    VIOLATED = "VIOLATED"
+    MET = "MET"
+
+
+class NoteType(Enum):
+    INVESTIGATION = "INVESTIGATION"
+    INFO_REQUEST = "INFO_REQUEST"
+    INFO_RESPONSE = "INFO_RESPONSE"
+
+
+class ChannelType(Enum):
+    IN_APP = "IN_APP"
+    EMAIL = "EMAIL"
+
+
+class EscalationLevel(Enum):
+    TECHNICIAN = 0
+    TEAM_LEAD = 1
+    SYSTEM_ADMIN = 2
+    IT_MANAGER = 3
+
+
+class SlaEventType(Enum):
+    WARNING = "WARNING"
+    RESPONSE_VIOLATED = "RESPONSE_VIOLATED"
+    RESOLUTION_VIOLATED = "RESOLUTION_VIOLATED"
+
+
+class IncidentEventType(Enum):
+    CREATED = "CREATED"
+    CLASSIFIED = "CLASSIFIED"
+    ASSIGNED = "ASSIGNED"
+    REASSIGNED = "REASSIGNED"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    INVESTIGATION_STARTED = "INVESTIGATION_STARTED"
+    NOTE_ADDED = "NOTE_ADDED"
+    INFO_REQUESTED = "INFO_REQUESTED"
+    INFO_RESPONDED = "INFO_RESPONDED"
+    RESOLVED = "RESOLVED"
+    RESOLUTION_REJECTED = "RESOLUTION_REJECTED"
+    VERIFIED = "VERIFIED"
+    CLOSED = "CLOSED"
+    PRIORITY_CHANGED = "PRIORITY_CHANGED"
+    ESCALATED = "ESCALATED"
+    SLA_WARNING = "SLA_WARNING"
+    SLA_VIOLATED = "SLA_VIOLATED"
+    DUPLICATE_FLAGGED = "DUPLICATE_FLAGGED"
+    FEEDBACK_SUBMITTED = "FEEDBACK_SUBMITTED"
