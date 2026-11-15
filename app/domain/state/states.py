@@ -15,7 +15,6 @@ app/domain/state/ may do that: it is Python's version of 'package-private'.
 """
 from __future__ import annotations
 
-from datetime import datetime
 
 from app.domain.enums import (
     EscalationLevel, IncidentEventType, IncidentStatus, NoteType, Priority, SlaEventType, SlaStatus,
@@ -142,6 +141,7 @@ class OpenState(IncidentState):
         if tracker is None:                      # not classified yet: no SLA to update
             self._illegal("apply_sla_result")
         require_instance(result, SlaCheckResult, "result")
+        require_instance(result.status, SlaStatus, "result")
         for event_type in result.new_events:
             require_instance(event_type, SlaEventType, "result")
         new = set(result.new_events)

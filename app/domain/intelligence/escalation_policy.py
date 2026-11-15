@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from app.domain.business_rules import BusinessRules as R
 from app.domain.enums import AdminLevel, EscalationLevel, IncidentStatus, Priority
+from app.domain.models._validation import require_naive_datetime
 
 if TYPE_CHECKING:
     from app.domain.models.incident import Incident
@@ -27,6 +28,7 @@ class EscalationPolicy:
     """
 
     def evaluate(self, incident: Incident, now: datetime) -> EscalationDecision | None:
+        require_naive_datetime(now, "now")
         tracker = incident.sla_tracker
         if (incident.priority is not Priority.P1 or incident.status is not IncidentStatus.ASSIGNED
                 or tracker is None):

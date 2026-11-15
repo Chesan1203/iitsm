@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.domain.exceptions import InvalidInputError
 
 
@@ -34,4 +36,12 @@ def require_int_min(value, minimum: int, field: str) -> int:
 def require_int_between(value, low: int, high: int, field: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
         raise InvalidInputError(f"{_label(field)} must be a whole number from {low} to {high}", field)
+    return value
+
+
+def require_naive_datetime(value, field: str) -> datetime:
+    """Domain times are local, without a time zone. A zone-aware value would raise an obscure
+    TypeError the first time it is compared with a naive one, so it is rejected up front."""
+    if not isinstance(value, datetime) or value.tzinfo is not None:
+        raise InvalidInputError(f"{_label(field)} must be a date and time without a time zone", field)
     return value

@@ -6,7 +6,7 @@ class Entity:
     """Base for objects that get a database id. The id is write-once."""
 
     def __init__(self, id: int | None = None):
-        self._id = None if id is None else require_int_min(id, 0, "id")
+        self._id = None if id is None else require_int_min(id, 1, "id")
 
     @property
     def id(self) -> int | None:

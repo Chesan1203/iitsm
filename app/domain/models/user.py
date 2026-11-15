@@ -137,7 +137,14 @@ class SystemUser(User):
 
     def __init__(self):
         super().__init__("system", "System", "system@iitsm.local", "!", Role.ADMINISTRATOR,
-                         id=0, active=True)
+                         active=True)
+        self._id = 0                        # the only user whose id is 0
+
+    def activate(self) -> None:
+        raise InvalidInputError("The system user cannot be changed", "active")
+
+    def deactivate(self) -> None:
+        raise InvalidInputError("The system user cannot be changed", "active")
 
     @property
     def is_system(self) -> bool: return True

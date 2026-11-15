@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.domain.enums import Priority, SlaEventType
-from app.domain.exceptions import InvalidInputError, MissingSlaConfigurationError
+from app.domain.exceptions import MissingSlaConfigurationError
 from app.domain.models._entity import Entity
 from app.domain.models._validation import require_instance, require_int_min, require_text
 

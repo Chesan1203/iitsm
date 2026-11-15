@@ -1,0 +1,418 @@
+@startuml
+title Diagram 1 - Users and reference data (app/domain/models)
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+abstract class Entity {
+  -_id: int | None
+  --
+  +id: int | None
+  +assign_id(new_id)  {write-once}
+}
+abstract class User {
+  -username: str
+  -full_name: str
+  -email: str
+  -password_hash: str
+  -role: Role
+  -active: bool
+  --
+  +is_system: bool
+  +activate()
+  +deactivate()
+  +describe(): str  {abstract}
+  +system(): User  {static}
+}
+class Employee {
+  -department: str
+  --
+  +describe(): str
+}
+class Technician {
+  -skills: frozenset[str]
+  -experience_years: int
+  -available: bool
+  -max_workload: int
+  --
+  +set_available(available)
+  +describe(): str
+}
+class Administrator {
+  -admin_level: AdminLevel
+  --
+  +describe(): str
+}
+class SystemUser {
+  id = 0, role = ADMINISTRATOR
+  --
+  +activate() / deactivate(): raise
+  +describe(): str
+}
+class ITService {
+  -name: str
+  -description: str
+  -business_criticality: Level
+  -sla_policy_id: int | None
+  -active: bool
+}
+class Category {
+  -name: str
+  -description: str
+  -required_skill: str
+  -active: bool
+}
+class SlaPolicy {
+  -name: str
+  -is_default: bool
+  -targets: dict[Priority, SlaTarget]
+  --
+  +target_for(priority): SlaTarget
+}
+class SlaTarget <<value>> {
+  +response_minutes: int
+  +resolution_minutes: int
+}
+Entity <|-- User
+Entity <|-- ITService
+Entity <|-- Category
+Entity <|-- SlaPolicy
+User <|-- Employee
+User <|-- Technician
+User <|-- Administrator
+User <|-- SystemUser
+SlaPolicy *-- "0..4" SlaTarget : targets
+ITService ..> SlaPolicy : refers by sla_policy_id
+@enduml
+
+@startuml
+title Diagram 2 - The Incident and the objects it owns (app/domain/models)
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Incident {
+  -ticket_number: str
+  -title: str
+  -description: str
+  -impact: Level
+  -urgency: Level
+  -affected_users: int
+  -priority: Priority
+  -priority_score: int
+  -status: IncidentStatus
+  -created_at, assigned_at, acknowledged_at,
+    resolved_at, verified_at, closed_at: datetime
+  -escalation_level: EscalationLevel
+  -possible_duplicate_of: str
+  --
+  +is_open, is_active, has_pending_info_request, notes
+  +add_observer(observer)
+  +snapshot(): IncidentSnapshot
+  +restore(snapshot): Incident  {static}
+  +18 behaviour methods (see diagram 3)
+}
+class SlaTracker {
+  -response_deadline, resolution_deadline: datetime
+  -response_warned, resolution_warned: bool
+  -response_violated, resolution_violated: bool
+  -status: SlaStatus
+  --
+  +copy(): SlaTracker
+}
+class InvestigationNote <<value>> {
+  +id
+  +author: User
+  +note_type: NoteType
+  +text: str
+  +created_at
+}
+class Resolution <<value>> {
+  +summary: str
+  +details: str
+  +resolved_by: User
+  +resolved_at
+}
+class Feedback <<value>> {
+  +rating: int (1-5)
+  +comment: str
+  +submitted_at
+}
+class IncidentSnapshot <<value>> {
+  one field per Incident field
+  notes: tuple[InvestigationNote]
+}
+class AuditRecord <<record>> {
+  +id, incident_id, ticket_number
+  +timestamp, actor_id, actor_name
+  +action
+  +previous_status, new_status
+  +description
+}
+class Notification <<record>> {
+  +id, recipient_id, incident_id
+  +event_type: IncidentEventType
+  +channel: ChannelType
+  +message, created_at
+  +is_read: bool
+}
+class SlaEvent <<record>> {
+  +id, incident_id
+  +event_type: SlaEventType
+  +recorded_at
+}
+class User <<see diagram 1>> {
+}
+class Technician <<see diagram 1>> {
+}
+class ITService <<see diagram 1>> {
+}
+class Category <<see diagram 1>> {
+}
+Incident *-- "0..1" SlaTracker : sla_tracker
+Incident *-- "0..*" InvestigationNote : notes
+Incident *-- "0..1" Resolution : resolution
+Incident *-- "0..1" Feedback : feedback
+Incident --> "1" User : reporter
+Incident --> "0..1" Technician : assigned_technician
+Incident --> "1" ITService : affected_service
+Incident --> "1" Category : category
+InvestigationNote --> "1" User : author
+Resolution --> "1" User : resolved_by
+Incident ..> IncidentSnapshot : snapshot() / restore()
+AuditRecord ..> Incident : refers by incident_id
+Notification ..> Incident : refers by incident_id
+SlaEvent ..> Incident : refers by incident_id
+@enduml
+
+@startuml
+title Diagram 3 - Incident lifecycle: State pattern and Observer pattern (app/domain/state, observer, events)
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Incident {
+  -status: IncidentStatus
+  -observers: list[IncidentObserver]
+  --
+  +record_creation, classify, assign_to, reassign,
+    acknowledge, start_investigation, add_note,
+    request_info, respond_to_info, resolve,
+    verify, reject_resolution, close, submit_feedback,
+    escalate, change_priority, mark_possible_duplicate,
+    apply_sla_result   (each delegates to the state)
+  +add_observer(observer)
+  -_state: IncidentState  {derived}
+  -_set(**changes), _add_note(note)
+  -_fire(event_type, actor, previous, description, at)
+}
+abstract class IncidentState {
+  +status: IncidentStatus  {abstract}
+  +18 action methods: every one raises
+    InvalidStateTransitionError by default
+}
+abstract class OpenState {
+  -_technician_may_note: bool
+  --
+  +add_note()
+  +escalate()
+  +change_priority()
+  +mark_possible_duplicate()
+  +apply_sla_result()
+}
+class NewState {
+  +record_creation()
+  +classify()
+}
+class ClassifiedState {
+  +assign_to()
+}
+class AssignedState {
+  +reassign()
+  +acknowledge()
+}
+class AcknowledgedState {
+  +start_investigation()
+}
+class InProgressState {
+  +request_info()
+  +respond_to_info()
+  +resolve()
+}
+class ResolvedState {
+  +verify()
+  +reject_resolution()
+}
+class VerifiedState {
+  +close()
+  +submit_feedback()
+}
+class ClosedState {
+  +submit_feedback()  {the only action left}
+}
+class IncidentStateFactory {
+  +for_status(status): IncidentState  {static}
+}
+interface IncidentObserver {
+  +on_event(event: IncidentEvent)
+}
+class IncidentEvent <<value>> {
+  +incident
+  +event_type: IncidentEventType
+  +actor: User
+  +previous_status
+  +new_status
+  +description
+  +timestamp
+}
+class permissions <<module>> {
+  require_system()
+  require_admin()
+  require_admin_or_system()
+  require_assigned_technician()
+  require_reporter()
+  require_reporter_or_system()
+  require_reporter_or_admin()
+}
+IncidentState <|-- OpenState
+IncidentState <|-- ClosedState
+OpenState <|-- NewState
+OpenState <|-- ClassifiedState
+OpenState <|-- AssignedState
+OpenState <|-- AcknowledgedState
+OpenState <|-- InProgressState
+OpenState <|-- ResolvedState
+OpenState <|-- VerifiedState
+Incident ..> IncidentStateFactory : asks for its state
+IncidentStateFactory ..> IncidentState : returns a shared instance
+Incident o-- "0..*" IncidentObserver : observers
+Incident ..> IncidentEvent : fires
+IncidentObserver ..> IncidentEvent : receives
+OpenState ..> permissions : checks the actor
+@enduml
+
+@startuml
+title Diagram 4 - Strategy pattern: priority and technician assignment (app/domain/strategies)
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+interface PriorityStrategy {
+  +calculate(data: PriorityInput): PriorityResult
+  +name: str
+}
+class WeightedScorePriorityStrategy {
+  +calculate()
+  +name = 'weighted_score'
+}
+class RuleBasedPriorityStrategy {
+  -_fallback: WeightedScorePriorityStrategy
+  --
+  +calculate()
+  +name = 'rule_based'
+}
+class PriorityInput <<value>> {
+  +impact, urgency, criticality: Level
+  +affected_users: int
+}
+class PriorityResult <<value>> {
+  +score: int
+  +priority: Priority
+  +explanation: str
+}
+abstract class AssignmentStrategy {
+  +rank(incident, candidates): list[RankedTechnician]  {abstract}
+  +name: str  {abstract}
+  +select(incident, candidates): Technician | None
+}
+class SkillBasedAssignment {
+  +rank()
+  +name = 'skill_based'
+}
+class LoadBasedAssignment {
+  +rank()
+  +name = 'load_based'
+}
+class WeightedRecommendationStrategy {
+  +rank()
+  +name = 'weighted_recommendation'
+}
+class TechnicianCandidate <<value>> {
+  +technician: Technician
+  +active_incident_count: int
+  +resolved_on_this_service_count: int
+}
+class RankedTechnician <<value>> {
+  +technician: Technician
+  +score: float
+  +reasons: list[str]
+}
+class Incident <<see diagram 2>> {
+}
+PriorityStrategy <|.. WeightedScorePriorityStrategy
+PriorityStrategy <|.. RuleBasedPriorityStrategy
+RuleBasedPriorityStrategy *-- "1" WeightedScorePriorityStrategy : falls back to
+PriorityStrategy ..> PriorityInput : reads
+PriorityStrategy ..> PriorityResult : returns
+AssignmentStrategy <|-- SkillBasedAssignment
+AssignmentStrategy <|-- LoadBasedAssignment
+AssignmentStrategy <|-- WeightedRecommendationStrategy
+AssignmentStrategy ..> TechnicianCandidate : reads
+AssignmentStrategy ..> RankedTechnician : returns
+AssignmentStrategy ..> Incident : ranks for
+@enduml
+
+@startuml
+title Diagram 5 - SLA engine, intelligent features and time (app/domain/sla, intelligence, time_provider)
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Incident <<see diagram 2>> {
+}
+class SlaCalculator {
+  +create_tracker(priority, policy, start): SlaTracker
+  +evaluate(incident, now): SlaCheckResult
+}
+class SlaCheckResult <<value>> {
+  +status: SlaStatus
+  +new_events: list[SlaEventType]
+}
+class DuplicateDetector {
+  +find_similar(incident, recent): list[DuplicateMatch]
+}
+class DuplicateMatch <<value>> {
+  +other_ticket_number: str
+  +score: float
+}
+class EscalationPolicy {
+  +evaluate(incident, now): EscalationDecision | None
+}
+class EscalationDecision <<value>> {
+  +new_level: EscalationLevel
+  +target_admin_level: AdminLevel
+  +reason: str
+}
+class CorrelationDetector {
+  +find_groups(open_incidents, now): list[CorrelationGroup]
+}
+class CorrelationGroup <<value>> {
+  +service: ITService
+  +incidents: list[Incident]
+  +is_probable_service_problem: bool
+}
+interface TimeProvider {
+  +now(): datetime
+}
+class SystemTimeProvider {
+  +now(): datetime
+}
+class SimulatedTimeProvider {
+  -_offset: timedelta
+  --
+  +now(): datetime
+  +advance(delta)
+  +reset()
+  +offset: timedelta
+}
+SlaCalculator ..> Incident : evaluates
+EscalationPolicy ..> Incident : evaluates
+DuplicateDetector ..> Incident : compares
+CorrelationDetector ..> Incident : groups
+SlaCalculator ..> SlaCheckResult : returns
+DuplicateDetector ..> DuplicateMatch : returns
+EscalationPolicy ..> EscalationDecision : returns
+CorrelationDetector ..> CorrelationGroup : returns
+TimeProvider <|.. SystemTimeProvider
+TimeProvider <|.. SimulatedTimeProvider
+@enduml

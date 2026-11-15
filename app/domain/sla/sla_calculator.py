@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from app.domain.business_rules import BusinessRules
 from app.domain.enums import Priority, SlaEventType, SlaStatus
-from app.domain.models._validation import require_instance
+from app.domain.models._validation import require_instance, require_naive_datetime
 from app.domain.models.incident_parts import SlaTracker
 from app.domain.models.sla import SlaPolicy
 
@@ -39,7 +39,7 @@ class SlaCalculator:
         """Both deadlines are counted from `start` (the incident's creation time)."""
         require_instance(priority, Priority, "priority")
         require_instance(policy, SlaPolicy, "policy")
-        require_instance(start, datetime, "start")
+        require_naive_datetime(start, "start")
         target = policy.target_for(priority)
         return SlaTracker(start + timedelta(minutes=target.response_minutes),
                           start + timedelta(minutes=target.resolution_minutes))
@@ -54,6 +54,7 @@ class SlaCalculator:
         - MET: both clocks stopped and no deadline was missed.
         - An incident without a tracker (not classified yet) has no SLA: ON_TRACK, no events.
         """
+        require_naive_datetime(now, "now")
         tracker = incident.sla_tracker
         if tracker is None:
             return SlaCheckResult(SlaStatus.ON_TRACK, [])

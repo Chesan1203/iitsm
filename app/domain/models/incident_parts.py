@@ -3,7 +3,7 @@ from datetime import datetime
 
 from app.domain.enums import NoteType, SlaStatus
 from app.domain.models._validation import (
-    optional_text, require_instance, require_int_between, require_text,
+    optional_text, require_instance, require_int_between, require_naive_datetime, require_text,
 )
 from app.domain.models.user import User
 
@@ -15,8 +15,8 @@ class SlaTracker:
                  response_warned: bool = False, resolution_warned: bool = False,
                  response_violated: bool = False, resolution_violated: bool = False,
                  status: SlaStatus = SlaStatus.ON_TRACK):
-        self._response_deadline = require_instance(response_deadline, datetime, "response_deadline")
-        self._resolution_deadline = require_instance(resolution_deadline, datetime, "resolution_deadline")
+        self._response_deadline = require_naive_datetime(response_deadline, "response_deadline")
+        self._resolution_deadline = require_naive_datetime(resolution_deadline, "resolution_deadline")
         self._response_warned = bool(response_warned)
         self._resolution_warned = bool(resolution_warned)
         self._response_violated = bool(response_violated)

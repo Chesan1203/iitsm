@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from app.domain.business_rules import BusinessRules as R
 from app.domain.enums import IncidentStatus
+from app.domain.models._validation import require_naive_datetime
 from app.domain.models.it_service import ITService
 
 if TYPE_CHECKING:
@@ -29,6 +30,7 @@ class CorrelationDetector:
     (their problem is fixed)."""
 
     def find_groups(self, open_incidents: list[Incident], now: datetime) -> list[CorrelationGroup]:
+        require_naive_datetime(now, "now")
         window_start = now - timedelta(minutes=R.CORRELATION_WINDOW_MINUTES)
         by_service: dict[tuple, list[Incident]] = defaultdict(list)
         for incident in open_incidents:

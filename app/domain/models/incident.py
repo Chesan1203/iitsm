@@ -11,7 +11,7 @@ from app.domain.events import IncidentEvent
 from app.domain.exceptions import InvalidInputError
 from app.domain.models._entity import Entity
 from app.domain.models._validation import (
-    require_instance, require_int_min, require_text,
+    require_instance, require_int_min, require_naive_datetime, require_text,
 )
 from app.domain.models.category import Category
 from app.domain.models.incident_parts import Feedback, InvestigationNote, Resolution, SlaTracker
@@ -48,7 +48,7 @@ class Incident(Entity):
         self._impact = require_instance(impact, Level, "impact")
         self._urgency = require_instance(urgency, Level, "urgency")
         self._affected_users = require_int_min(affected_users, 1, "affected_users")
-        self._created_at = require_instance(created_at, datetime, "created_at")
+        self._created_at = require_naive_datetime(created_at, "created_at")
         self._priority: Priority | None = None
         self._priority_score: int | None = None
         self._status = IncidentStatus.NEW

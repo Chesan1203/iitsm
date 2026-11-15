@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from app.domain.business_rules import BusinessRules
 from app.domain.enums import Level, Priority
-from app.domain.models._validation import require_instance, require_int_min
+from app.domain.models._validation import require_instance, require_int_min, require_text
 
 
 @dataclass(frozen=True)
@@ -25,6 +25,11 @@ class PriorityResult:
     score: int
     priority: Priority
     explanation: str
+
+    def __post_init__(self):
+        require_int_min(self.score, 1, "score")
+        require_instance(self.priority, Priority, "priority")
+        require_text(self.explanation, "explanation")
 
 
 def score_to_priority(score: int) -> Priority:
