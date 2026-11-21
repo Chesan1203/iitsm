@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import field_error %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-1">Create an employee account</h1>
+        <p class="text-muted small">Technician and administrator accounts are created by an administrator.</p>
+        <form method="post" action="/register" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="full_name">Full name</label>
+            <input class="form-control{% if errors.full_name %} is-invalid{% endif %}" id="full_name" name="full_name"
+                   value="{{ values.get('full_name', '') }}" autocomplete="name" required>
+            {{ field_error(errors, 'full_name') }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="username">Username</label>
+            <input class="form-control{% if errors.username %} is-invalid{% endif %}" id="username" name="username"
+                   value="{{ values.get('username', '') }}" autocomplete="username" required>
+            <div class="form-text">3 to 30 characters: letters, digits, dot or underscore.</div>
+            {{ field_error(errors, 'username') }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control{% if errors.email %} is-invalid{% endif %}" id="email" name="email" type="email"
+                   value="{{ values.get('email', '') }}" autocomplete="email" required>
+            {{ field_error(errors, 'email') }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="department">Department <span class="text-muted">(optional)</span></label>
+            <input class="form-control" id="department" name="department" value="{{ values.get('department', '') }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control{% if errors.password %} is-invalid{% endif %}" id="password" name="password"
+                   type="password" autocomplete="new-password" required>
+            <div class="form-text">At least 8 characters.</div>
+            {{ field_error(errors, 'password') }}
+          </div>
+          {{ field_error(errors, 'form') }}
+          <button class="btn btn-primary w-100" type="submit">Create account</button>
+        </form>
+        <p class="small text-muted mt-3 mb-0">Already registered? <a href="/login">Sign in</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

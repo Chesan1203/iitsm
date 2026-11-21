@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import field_error %}
+{% block title %}SLA policies{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">SLA policies</h1>
+<p class="text-muted small">A service uses its own policy, otherwise the default one. Exactly one policy is the default.</p>
+<div class="row g-3 mb-4" id="policy-list">
+  {% for p in policies %}
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <h2 class="h6">{{ p.name }} {% if p.is_default %}<span class="badge bg-primary">Default</span>{% endif %}</h2>
+        <a class="btn btn-sm btn-outline-primary" href="/admin/sla-policies?edit={{ p.id }}">Edit</a>
+      </div>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Priority</th><th>Response</th><th>Resolution</th></tr></thead>
+        <tbody>
+          {% for pr in priorities %}{% set t = p.targets.get(pr) %}
+          <tr><td>{{ pr.name }} ({{ pr.label }})</td><td>{{ t.response_minutes|duration if t else '-' }}</td><td>{{ t.resolution_minutes|duration if t else '-' }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card shadow-sm" id="policy-form"><div class="card-body">
+  <h2 class="h5">{{ 'Edit policy: ' ~ editing.name if editing else 'Add or update a policy' }}</h2>
+  <p class="text-muted small mb-3">Minutes. Saving a policy with an existing name updates that policy.</p>
+  <form method="post" action="/admin/sla-policies" novalidate>
+    <div class="row g-3 mb-3">
+      <div class="col-md-6"><label class="form-label" for="name">Name</label>
+        <input class="form-control{% if errors.name %} is-invalid{% endif %}" id="name" name="name" value="{{ values.get('name', '') }}" required>
+        {{ field_error(errors, 'name') }}</div>
+      <div class="col-md-6 d-flex align-items-end"><div class="form-check">
+        <input class="form-check-input" type="checkbox" id="is_default" name="is_default"{% if values.get('is_default') == 'on' %} checked{% endif %}>
+        <label class="form-check-label" for="is_default">Make this the default policy</label></div></div>
+    </div>
+    <table class="table table-sm bg-white align-middle">
+      <thead class="table-light"><tr><th>Priority</th><th>Response (minutes)</th><th>Resolution (minutes)</th></tr></thead>
+      <tbody>
+        {% for pr in priorities %}
+        <tr><td>{{ pr.name }} ({{ pr.label }})</td>
+          <td><input class="form-control form-control-sm" name="resp_{{ pr.name }}" value="{{ values.get('resp_' ~ pr.name, '') }}" inputmode="numeric" aria-label="Response minutes for {{ pr.name }}"></td>
+          <td><input class="form-control form-control-sm" name="res_{{ pr.name }}" value="{{ values.get('res_' ~ pr.name, '') }}" inputmode="numeric" aria-label="Resolution minutes for {{ pr.name }}"></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {{ field_error(errors, 'targets') }}{{ field_error(errors, 'is_default') }}{{ field_error(errors, 'form') }}
+    <button class="btn btn-primary" type="submit">Save policy</button>
+    {% if editing %}<a class="btn btn-link" href="/admin/sla-policies">Cancel</a>{% endif %}
+  </form>
+</div></div>
+{% endblock %}

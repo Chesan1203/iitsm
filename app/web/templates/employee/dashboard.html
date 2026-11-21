@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import incident_table %}
+{% block title %}My incidents{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">My incidents</h1>
+  <a class="btn btn-primary" href="/incidents/new">Report an incident</a>
+</div>
+<ul class="nav nav-pills mb-3 flex-wrap">
+  <li class="nav-item"><a class="nav-link{% if not chosen %} active{% endif %}" href="/employee/dashboard">All</a></li>
+  {% for s in statuses %}
+  <li class="nav-item"><a class="nav-link{% if chosen == s %} active{% endif %}" href="/employee/dashboard?status={{ s.name }}">{{ s.name|label }}</a></li>
+  {% endfor %}
+</ul>
+{{ incident_table(incidents, show_technician=true) }}
+{% endblock %}

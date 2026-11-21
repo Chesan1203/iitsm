@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Demo controls{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Demo controls</h1>
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <div>
+      <div class="text-muted small">Simulated time</div>
+      <div class="fw-semibold">{{ 'On' if simulated else 'Off (real clock)' }}</div>
+    </div>
+    <div class="text-end">
+      <div class="text-muted small">The system's current time</div>
+      <div class="h5 mb-0" id="current-time">{{ now.strftime('%d %b %Y %H:%M:%S') }}</div>
+    </div>
+  </div>
+</div></div>
+
+{% if simulated %}
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <h2 class="h6">Move the clock forward</h2>
+  <p class="text-muted small">Deadlines pass without waiting. Then run the checks below to see warnings, violations and escalations.</p>
+  <div class="d-flex flex-wrap gap-2">
+    {% for m in choices %}
+    <form method="post" action="/admin/demo/advance" class="m-0">
+      <input type="hidden" name="minutes" value="{{ m }}"><button class="btn btn-outline-primary" type="submit">+{{ m }} minutes</button>
+    </form>
+    {% endfor %}
+    <form method="post" action="/admin/demo/reset" class="m-0"><button class="btn btn-outline-secondary" type="submit">Reset to real time</button></form>
+  </div>
+</div></div>
+{% else %}
+<div class="alert alert-info">The demo clock is switched off (<code>SIMULATED_TIME=false</code>), so time cannot be moved.</div>
+{% endif %}
+
+<div class="card shadow-sm"><div class="card-body">
+  <h2 class="h6">Run a check now</h2>
+  <p class="text-muted small">These checks also run by themselves every 30 seconds. Running one now shows what it found.</p>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="post" action="/admin/demo/run-sla" class="m-0"><button class="btn btn-warning" type="submit">Run SLA check now</button></form>
+    <form method="post" action="/admin/demo/run-escalation" class="m-0"><button class="btn btn-danger" type="submit">Run escalation check now</button></form>
+  </div>
+</div></div>
+{% endblock %}

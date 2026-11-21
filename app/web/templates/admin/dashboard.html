@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+  {% for title, value, tone in [
+      ('Total incidents', overview.total, 'dark'),
+      ('Open', overview.open, 'primary'),
+      ('Critical open', overview.critical_open, 'danger'),
+      ('Resolved', overview.resolved, 'success'),
+      ('SLA violations', overview.sla_violations, 'warning')] %}
+  <div class="col-6 col-md">
+    <div class="card shadow-sm border-{{ tone }}">
+      <div class="card-body text-center">
+        <div class="display-6">{{ value }}</div>
+        <div class="text-muted small">{{ title }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <h2 class="h5">Technician workload</h2>
+    <div class="table-responsive">
+      <table class="table bg-white align-middle">
+        <thead class="table-light"><tr><th>Technician</th><th style="width:45%">Active incidents</th></tr></thead>
+        <tbody>
+          {% for row in workload %}
+          {% set pct = (100 * row.active_count / row.max_workload)|round|int if row.max_workload else 0 %}
+          <tr>
+            <td>{{ row.technician_name }}</td>
+            <td>
+              <div class="progress" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar {% if pct >= 100 %}bg-danger{% elif pct >= 80 %}bg-warning text-dark{% else %}bg-success{% endif %}"
+                     style="width: {{ [pct, 100]|min }}%">{{ row.active_count }} / {{ row.max_workload }}</div>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="2" class="text-muted text-center py-3">No technicians yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <h2 class="h5">Incidents per service</h2>
+    <table class="table bg-white">
+      <thead class="table-light"><tr><th>Service</th><th class="text-end">Incidents</th></tr></thead>
+      <tbody>
+        {% for row in services %}
+        <tr><td>{{ row.label }}</td><td class="text-end">{{ row.count }}</td></tr>
+        {% else %}
+        <tr><td colspan="2" class="text-muted text-center py-3">No services yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

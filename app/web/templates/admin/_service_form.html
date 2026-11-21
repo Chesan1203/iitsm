@@ -1,0 +1,24 @@
+{% from "partials/macros.html" import field_error %}
+<form method="post" action="{{ action|default('/admin/services') }}" novalidate>
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label" for="name">Name</label>
+      <input class="form-control{% if errors.name %} is-invalid{% endif %}" id="name" name="name" value="{{ values.get('name', '') }}" required>
+      {{ field_error(errors, 'name') }}</div>
+    <div class="col-md-8"><label class="form-label" for="description">Description</label>
+      <input class="form-control" id="description" name="description" value="{{ values.get('description', '') }}"></div>
+    <div class="col-md-4"><label class="form-label" for="business_criticality">Business criticality</label>
+      <select class="form-select{% if errors.business_criticality %} is-invalid{% endif %}" id="business_criticality" name="business_criticality">
+        {% for l in levels %}<option value="{{ l.name }}"{% if values.get('business_criticality') == l.name %} selected{% endif %}>{{ l.name|label }}</option>{% endfor %}
+      </select>{{ field_error(errors, 'business_criticality') }}</div>
+    <div class="col-md-4"><label class="form-label" for="sla_policy_id">SLA policy</label>
+      <select class="form-select{% if errors.sla_policy_id %} is-invalid{% endif %}" id="sla_policy_id" name="sla_policy_id">
+        <option value="">Default policy</option>
+        {% for p in policies %}<option value="{{ p.id }}"{% if values.get('sla_policy_id') == p.id|string %} selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>{{ field_error(errors, 'sla_policy_id') }}</div>
+    <div class="col-md-4 d-flex align-items-end">
+      <div class="form-check"><input class="form-check-input" type="checkbox" id="active" name="active"{% if values.get('active') == 'on' %} checked{% endif %}>
+        <label class="form-check-label" for="active">Active (can be reported against)</label></div></div>
+  </div>
+  {{ field_error(errors, 'form') }}
+  <button class="btn btn-primary mt-3" type="submit">{{ submit_label|default('Add service') }}</button>
+</form>

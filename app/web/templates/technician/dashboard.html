@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import incident_table %}
+{% block title %}My work{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">My work</h1>
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between">
+      <strong>Current workload</strong>
+      <span id="workload-text">{{ workload }} of {{ maximum }} active incidents</span>
+    </div>
+    <div class="progress mt-2" role="progressbar" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar {% if percent >= 100 %}bg-danger{% elif percent >= 80 %}bg-warning{% else %}bg-success{% endif %}"
+           style="width: {{ percent }}%"></div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h5">Assigned to me</h2>
+<p class="text-muted small">Most important first: priority, then nearest SLA deadline.</p>
+{{ incident_table(active, show_reporter=true) }}
+
+{% if finished %}
+<h2 class="h5 mt-4">Recently finished</h2>
+{{ incident_table(finished, show_reporter=true) }}
+{% endif %}
+{% endblock %}

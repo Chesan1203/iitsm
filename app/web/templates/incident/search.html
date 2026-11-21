@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import incident_table %}
+{% block title %}Search incidents{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">{{ 'All incidents' if is_admin else 'Search incidents' }}</h1>
+<form method="get" action="/incidents/search" class="card shadow-sm mb-4" id="search-form">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3"><label class="form-label small" for="ticket_number">Ticket</label>
+        <input class="form-control form-control-sm" id="ticket_number" name="ticket_number" value="{{ form.ticket_number }}" placeholder="INC-1001"></div>
+      <div class="col-md-3"><label class="form-label small" for="status">Status</label>
+        <select class="form-select form-select-sm" id="status" name="status"><option value="">Any</option>
+          {% for s in statuses %}<option value="{{ s.name }}"{% if form.status == s.name %} selected{% endif %}>{{ s.name|label }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label small" for="priority">Priority</label>
+        <select class="form-select form-select-sm" id="priority" name="priority"><option value="">Any</option>
+          {% for p in priorities %}<option value="{{ p.name }}"{% if form.priority == p.name %} selected{% endif %}>{{ p.name }} ({{ p.label }})</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label small" for="sla_status">SLA</label>
+        <select class="form-select form-select-sm" id="sla_status" name="sla_status"><option value="">Any</option>
+          {% for s in sla_statuses %}<option value="{{ s.name }}"{% if form.sla_status == s.name %} selected{% endif %}>{{ s.name|label }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label small" for="service_id">Service</label>
+        <select class="form-select form-select-sm" id="service_id" name="service_id"><option value="">Any</option>
+          {% for s in services %}<option value="{{ s.id }}"{% if form.service_id == s.id|string %} selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label small" for="category_id">Category</label>
+        <select class="form-select form-select-sm" id="category_id" name="category_id"><option value="">Any</option>
+          {% for c in categories %}<option value="{{ c.id }}"{% if form.category_id == c.id|string %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+      {% if is_admin %}
+      <div class="col-md-3"><label class="form-label small" for="technician_id">Technician</label>
+        <select class="form-select form-select-sm" id="technician_id" name="technician_id"><option value="">Any</option>
+          {% for t in technicians %}<option value="{{ t.id }}"{% if form.technician_id == t.id|string %} selected{% endif %}>{{ t.full_name }}</option>{% endfor %}</select></div>
+      {% endif %}
+      <div class="col-md-3"><label class="form-label small" for="from_date">From date</label>
+        <input class="form-control form-control-sm" id="from_date" name="from_date" type="date" value="{{ form.from_date }}"></div>
+      <div class="col-md-3"><label class="form-label small" for="to_date">To date</label>
+        <input class="form-control form-control-sm" id="to_date" name="to_date" type="date" value="{{ form.to_date }}"></div>
+      <div class="col-md-6"><label class="form-label small" for="keyword">Keyword (title or description)</label>
+        <input class="form-control form-control-sm" id="keyword" name="keyword" value="{{ form.keyword }}"></div>
+    </div>
+    <div class="mt-3">
+      <button class="btn btn-primary btn-sm" type="submit">Search</button>
+      <a class="btn btn-link btn-sm" href="/incidents/search">Clear</a>
+    </div>
+  </div>
+</form>
+
+{% if searched %}
+<p class="text-muted small" id="result-count">{{ results|length }} incident{{ '' if results|length == 1 else 's' }} found</p>
+{{ incident_table(results, show_reporter=is_admin, show_technician=true) }}
+{% else %}
+<p class="text-muted">Choose one or more filters and press Search.</p>
+{% endif %}
+{% endblock %}

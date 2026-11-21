@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import priority_badge %}
+{% block title %}SLA violations{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">SLA violations</h1>
+<div class="table-responsive">
+  <table class="table bg-white align-middle" id="violations-table">
+    <thead class="table-light"><tr><th>Ticket</th><th>Title</th><th>Priority</th><th>Technician</th><th>Missed deadline</th><th>Recorded</th></tr></thead>
+    <tbody>
+      {% for v in rows %}
+      <tr>
+        <td>{{ v.ticket_number }}</td><td>{{ v.title }}</td><td>{{ priority_badge(v.priority) }}</td>
+        <td>{{ v.technician_name or 'Unassigned' }}</td>
+        <td>{{ 'Response' if 'RESPONSE' in v.event_type.name else 'Resolution' }}</td>
+        <td class="text-nowrap">{{ v.recorded_at|dt }}</td>
+      </tr>
+      {% else %}<tr><td colspan="6" class="text-center text-muted py-4">No SLA violations have been recorded.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

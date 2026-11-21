@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Edit category{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Edit category: {{ category.name }}</h1>
+<div class="card shadow-sm"><div class="card-body">
+  {% set action = '/admin/categories/' ~ category.id ~ '/edit' %}
+  {% set submit_label = 'Save changes' %}
+  {% include "admin/_category_form.html" %}
+  <a class="btn btn-link mt-2" href="/admin/categories">Back to categories</a>
+</div></div>
+{% endblock %}

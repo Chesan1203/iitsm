@@ -1,0 +1,17 @@
+{% from "partials/macros.html" import field_error %}
+<form method="post" action="{{ action|default('/admin/categories') }}" novalidate>
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label" for="name">Name</label>
+      <input class="form-control{% if errors.name %} is-invalid{% endif %}" id="name" name="name" value="{{ values.get('name', '') }}" required>
+      {{ field_error(errors, 'name') }}</div>
+    <div class="col-md-4"><label class="form-label" for="required_skill">Required skill</label>
+      <input class="form-control{% if errors.required_skill %} is-invalid{% endif %}" id="required_skill" name="required_skill" value="{{ values.get('required_skill', '') }}" required>
+      {{ field_error(errors, 'required_skill') }}</div>
+    <div class="col-md-4"><label class="form-label" for="description">Description</label>
+      <input class="form-control" id="description" name="description" value="{{ values.get('description', '') }}"></div>
+    <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="active" name="active"{% if values.get('active') == 'on' %} checked{% endif %}>
+      <label class="form-check-label" for="active">Active (can be chosen when reporting)</label></div></div>
+  </div>
+  {{ field_error(errors, 'form') }}
+  <button class="btn btn-primary mt-3" type="submit">{{ submit_label|default('Add category') }}</button>
+</form>

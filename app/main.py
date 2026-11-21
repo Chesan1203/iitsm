@@ -31,8 +31,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict:
         return {"status": "ok", "mode": settings.ITSM_MODE}
 
-    # P4: from app.web.routes.auth_routes import router as auth_router
-    # P4: app.include_router(auth_router)
+    from app.web.setup import install_web
+    install_web(app)
     return app
 
 

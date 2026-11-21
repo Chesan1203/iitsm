@@ -1,0 +1,51 @@
+{# Badges with the same colour everywhere: priority P1 red, P2 orange, P3 yellow, P4 grey;
+   SLA on track green, warning amber, violated red, met blue. #}
+
+{% macro status_badge(status) -%}
+  <span class="badge {{ STATUS_CLASSES[status] }}">{{ status.name|label }}</span>
+{%- endmacro %}
+
+{% macro priority_badge(priority) -%}
+  {% if priority %}<span class="badge {{ PRIORITY_CLASSES[priority] }}" title="{{ priority.label }}">{{ priority.name }}</span>
+  {% else %}<span class="text-muted">-</span>{% endif %}
+{%- endmacro %}
+
+{% macro sla_badge(tracker) -%}
+  {% if tracker %}<span class="badge {{ SLA_CLASSES[tracker.status] }}">{{ tracker.status.name|label }}</span>
+  {% else %}<span class="text-muted">-</span>{% endif %}
+{%- endmacro %}
+
+{% macro incident_table(incidents, show_reporter=false, show_technician=false) %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle bg-white">
+    <thead class="table-light">
+      <tr>
+        <th>Ticket</th><th>Title</th><th>Status</th><th>Priority</th><th>SLA</th>
+        {% if show_reporter %}<th>Reporter</th>{% endif %}
+        {% if show_technician %}<th>Technician</th>{% endif %}
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in incidents %}
+      <tr>
+        <td><a href="/incidents/{{ i.id }}">{{ i.ticket_number }}</a></td>
+        <td>{{ i.title }}{% if i.possible_duplicate_of %} <span class="badge bg-light text-dark border" title="Possible duplicate of {{ i.possible_duplicate_of }}">duplicate?</span>{% endif %}</td>
+        <td>{{ status_badge(i.status) }}</td>
+        <td>{{ priority_badge(i.priority) }}</td>
+        <td>{{ sla_badge(i.sla_tracker) }}</td>
+        {% if show_reporter %}<td>{{ i.reporter.full_name }}</td>{% endif %}
+        {% if show_technician %}<td>{{ i.assigned_technician.full_name if i.assigned_technician else '-' }}</td>{% endif %}
+        <td class="text-nowrap">{{ i.created_at|dt }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="text-center text-muted py-4">No incidents to show.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro field_error(errors, name) -%}
+  {% if errors and errors.get(name) %}<div class="invalid-feedback d-block">{{ errors[name] }}</div>{% endif %}
+{%- endmacro %}

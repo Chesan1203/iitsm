@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import field_error %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Users</h1>
+<div class="table-responsive mb-4">
+  <table class="table bg-white align-middle" id="users-table">
+    <thead class="table-light"><tr><th>Username</th><th>Name</th><th>Role</th><th>Details</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.full_name }}</td>
+        <td>{{ u.role|label }}</td>
+        <td class="small text-muted">
+          {% if u.role.name == 'TECHNICIAN' %}{{ u.skills|sort|join(', ') }} &middot; {{ u.experience_years }} yrs &middot; max {{ u.max_workload }}
+            &middot; {% if u.available %}<span class="text-success">available</span>{% else %}<span class="text-danger">on leave</span>{% endif %}
+          {% elif u.role.name == 'ADMINISTRATOR' %}{{ u.admin_level|label }}
+          {% else %}{{ u.department or '' }}{% endif %}
+        </td>
+        <td>{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Deactivated</span>{% endif %}</td>
+        <td class="text-nowrap">
+          {% if u.id != user.id %}
+            {% if u.active %}
+            <form method="post" action="/admin/users/{{ u.id }}/deactivate" class="d-inline"><button class="btn btn-sm btn-outline-danger" type="submit">Deactivate</button></form>
+            {% else %}
+            <form method="post" action="/admin/users/{{ u.id }}/activate" class="d-inline"><button class="btn btn-sm btn-outline-success" type="submit">Reactivate</button></form>
+            {% endif %}
+          {% endif %}
+          {% if u.role.name == 'TECHNICIAN' %}
+          <form method="post" action="/admin/users/{{ u.id }}/availability" class="d-inline">
+            <input type="hidden" name="available" value="{{ 'no' if u.available else 'yes' }}">
+            <button class="btn btn-sm btn-outline-secondary" type="submit">{{ 'Set on leave' if u.available else 'Set available' }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card shadow-sm" id="create-user">
+  <div class="card-body">
+    <h2 class="h5">Create a user</h2>
+    {% if errors.form %}<div class="alert alert-danger">{{ errors.form }}</div>{% endif %}
+    <form method="post" action="/admin/users" novalidate>
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label" for="username">Username</label>
+          <input class="form-control{% if errors.username %} is-invalid{% endif %}" id="username" name="username" value="{{ values.get('username', '') }}" required>
+          {{ field_error(errors, 'username') }}</div>
+        <div class="col-md-4"><label class="form-label" for="full_name">Full name</label>
+          <input class="form-control{% if errors.full_name %} is-invalid{% endif %}" id="full_name" name="full_name" value="{{ values.get('full_name', '') }}" required>
+          {{ field_error(errors, 'full_name') }}</div>
+        <div class="col-md-4"><label class="form-label" for="email">Email</label>
+          <input class="form-control{% if errors.email %} is-invalid{% endif %}" id="email" name="email" type="email" value="{{ values.get('email', '') }}" required>
+          {{ field_error(errors, 'email') }}</div>
+        <div class="col-md-4"><label class="form-label" for="password">Password</label>
+          <input class="form-control{% if errors.password %} is-invalid{% endif %}" id="password" name="password" type="password" autocomplete="new-password" required>
+          {{ field_error(errors, 'password') }}</div>
+        <div class="col-md-4"><label class="form-label" for="role">Role</label>
+          <select class="form-select{% if errors.role %} is-invalid{% endif %}" id="role" name="role">
+            {% for r in roles %}<option value="{{ r.name }}"{% if values.get('role') == r.name %} selected{% endif %}>{{ r.name|label }}</option>{% endfor %}
+          </select>{{ field_error(errors, 'role') }}</div>
+        <div class="col-md-4"><label class="form-label" for="department">Department <span class="text-muted">(employees)</span></label>
+          <input class="form-control" id="department" name="department" value="{{ values.get('department', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="admin_level">Admin level <span class="text-muted">(administrators)</span></label>
+          <select class="form-select{% if errors.admin_level %} is-invalid{% endif %}" id="admin_level" name="admin_level">
+            <option value="">-</option>
+            {% for l in levels %}<option value="{{ l.name }}"{% if values.get('admin_level') == l.name %} selected{% endif %}>{{ l.name|label }}</option>{% endfor %}
+          </select>{{ field_error(errors, 'admin_level') }}</div>
+        <div class="col-md-4"><label class="form-label" for="skills">Skills <span class="text-muted">(technicians, comma separated)</span></label>
+          <input class="form-control" id="skills" name="skills" value="{{ values.get('skills', '') }}" placeholder="Network, Security"></div>
+        <div class="col-md-2"><label class="form-label" for="experience_years">Experience (years)</label>
+          <input class="form-control{% if errors.experience_years %} is-invalid{% endif %}" id="experience_years" name="experience_years" value="{{ values.get('experience_years', '0') }}">
+          {{ field_error(errors, 'experience_years') }}</div>
+        <div class="col-md-2"><label class="form-label" for="max_workload">Max workload</label>
+          <input class="form-control{% if errors.max_workload %} is-invalid{% endif %}" id="max_workload" name="max_workload" value="{{ values.get('max_workload', '5') }}">
+          {{ field_error(errors, 'max_workload') }}</div>
+      </div>
+      <button class="btn btn-primary mt-3" type="submit">Create user</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

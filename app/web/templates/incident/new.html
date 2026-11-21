@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import field_error %}
+{% block title %}Report an incident{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h1 class="h4 mb-3">Report an incident</h1>
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        {% if errors.form %}<div class="alert alert-warning" role="alert" id="form-error">{{ errors.form }}</div>{% endif %}
+        <form method="post" action="/incidents/new" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="title">Title</label>
+            <input class="form-control{% if errors.title %} is-invalid{% endif %}" id="title" name="title"
+                   maxlength="200" value="{{ values.get('title', '') }}" placeholder="For example: Payment application unavailable" required>
+            {{ field_error(errors, 'title') }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="description">Description</label>
+            <textarea class="form-control{% if errors.description %} is-invalid{% endif %}" id="description" name="description"
+                      rows="4" maxlength="4000" required>{{ values.get('description', '') }}</textarea>
+            {{ field_error(errors, 'description') }}
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_id">Affected service</label>
+              <select class="form-select{% if errors.service_id %} is-invalid{% endif %}" id="service_id" name="service_id" required>
+                <option value="">Choose a service...</option>
+                {% for s in services %}<option value="{{ s.id }}"{% if values.get('service_id') == s.id|string %} selected{% endif %}>{{ s.name }}</option>{% endfor %}
+              </select>
+              {{ field_error(errors, 'service_id') }}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="category_id">Category</label>
+              <select class="form-select{% if errors.category_id %} is-invalid{% endif %}" id="category_id" name="category_id" required>
+                <option value="">Choose a category...</option>
+                {% for c in categories %}<option value="{{ c.id }}"{% if values.get('category_id') == c.id|string %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+              </select>
+              {{ field_error(errors, 'category_id') }}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="impact">Impact</label>
+              <select class="form-select{% if errors.impact %} is-invalid{% endif %}" id="impact" name="impact">
+                {% for level in levels %}<option value="{{ level.name }}"{% if values.get('impact') == level.name %} selected{% endif %}>{{ impact_help[level] }}</option>{% endfor %}
+              </select>
+              {{ field_error(errors, 'impact') }}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="urgency">Urgency</label>
+              <select class="form-select{% if errors.urgency %} is-invalid{% endif %}" id="urgency" name="urgency">
+                {% for level in levels %}<option value="{{ level.name }}"{% if values.get('urgency') == level.name %} selected{% endif %}>{{ urgency_help[level] }}</option>{% endfor %}
+              </select>
+              {{ field_error(errors, 'urgency') }}
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="affected_users">How many people are affected?</label>
+            <input class="form-control{% if errors.affected_users %} is-invalid{% endif %}" id="affected_users" name="affected_users"
+                   inputmode="numeric" value="{{ values.get('affected_users', '1') }}" required>
+            {{ field_error(errors, 'affected_users') }}
+          </div>
+          <button class="btn btn-primary" type="submit">Submit incident</button>
+          <a class="btn btn-link" href="/employee/dashboard">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+@startuml
+title I-ITSM use cases
+left to right direction
+skinparam packageStyle rectangle
+
+actor Employee
+actor Technician
+actor Administrator
+actor "Scheduler\n(system)" as Scheduler
+
+rectangle "I-ITSM" {
+  ' ---- everyone ----
+  usecase "Register / sign in" as UC_Login
+  usecase "View notifications" as UC_Notify
+  usecase "Search incidents" as UC_Search
+  usecase "View incident and timeline" as UC_View
+
+  ' ---- employee ----
+  usecase "Report an incident" as UC_Report
+  usecase "Add information /\nanswer a question" as UC_Info
+  usecase "Verify or reject the fix" as UC_Verify
+  usecase "Close incident and\ngive feedback" as UC_Close
+
+  ' ---- technician ----
+  usecase "Acknowledge incident" as UC_Ack
+  usecase "Investigate and add notes" as UC_Investigate
+  usecase "Request information" as UC_Request
+  usecase "Resolve incident" as UC_Resolve
+
+  ' ---- administrator ----
+  usecase "Assign / reassign\ntechnician" as UC_Assign
+  usecase "Recommend technician" as UC_Recommend
+  usecase "Override priority" as UC_Override
+  usecase "Manage users" as UC_Users
+  usecase "Manage services, categories\nand SLA policies" as UC_Config
+  usecase "Choose assignment and\npriority strategy" as UC_Strategy
+  usecase "View reports and\nSLA violations" as UC_Reports
+  usecase "View audit log" as UC_Audit
+  usecase "Use demo controls\n(clock, run checks)" as UC_Demo
+
+  ' ---- automatic work done for every report ----
+  usecase "Calculate priority" as UC_Priority
+  usecase "Determine SLA deadlines" as UC_Sla
+  usecase "Assign technician\nautomatically" as UC_Auto
+  usecase "Notify people" as UC_Send
+  usecase "Record audit trail" as UC_Record
+  usecase "Flag possible duplicate" as UC_Dup
+
+  ' ---- scheduled work ----
+  usecase "Monitor SLA deadlines" as UC_Monitor
+  usecase "Escalate unacknowledged\ncritical incident" as UC_Escalate
+}
+
+Employee --> UC_Login
+Technician --> UC_Login
+Administrator --> UC_Login
+Employee --> UC_Notify
+Technician --> UC_Notify
+Administrator --> UC_Notify
+Employee --> UC_Search
+Technician --> UC_Search
+Administrator --> UC_Search
+Employee --> UC_View
+Technician --> UC_View
+Administrator --> UC_View
+
+Employee --> UC_Report
+Employee --> UC_Info
+Employee --> UC_Verify
+Employee --> UC_Close
+
+Technician --> UC_Ack
+Technician --> UC_Investigate
+Technician --> UC_Request
+Technician --> UC_Resolve
+
+Administrator --> UC_Assign
+Administrator --> UC_Recommend
+Administrator --> UC_Override
+Administrator --> UC_Users
+Administrator --> UC_Config
+Administrator --> UC_Strategy
+Administrator --> UC_Reports
+Administrator --> UC_Audit
+Administrator --> UC_Demo
+Administrator --> UC_Verify
+Administrator --> UC_Close
+
+UC_Report .> UC_Priority : <<include>>
+UC_Report .> UC_Sla : <<include>>
+UC_Report .> UC_Auto : <<include>>
+UC_Report .> UC_Send : <<include>>
+UC_Report .> UC_Record : <<include>>
+UC_Dup .> UC_Report : <<extend>>
+UC_Override .> UC_Sla : <<include>>
+
+Scheduler --> UC_Monitor
+Scheduler --> UC_Escalate
+UC_Monitor .> UC_Send : <<include>>
+UC_Escalate .> UC_Send : <<include>>
+UC_Monitor .> UC_Record : <<include>>
+UC_Escalate .> UC_Record : <<include>>
+UC_Demo ..> UC_Monitor : runs now
+UC_Demo ..> UC_Escalate : runs now
+@enduml

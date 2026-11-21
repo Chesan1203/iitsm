@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import priority_badge %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Reports</h1>
+
+<div class="row g-3 mb-4">
+  {% for title, value in [('Total', overview.total), ('Open', overview.open), ('Critical open', overview.critical_open),
+                          ('Resolved', overview.resolved), ('SLA violations', overview.sla_violations)] %}
+  <div class="col-6 col-md"><div class="card shadow-sm text-center"><div class="card-body py-2">
+    <div class="h3 mb-0">{{ value }}</div><div class="small text-muted">{{ title }}</div></div></div></div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <h2 class="h5">Technician workload</h2>
+    <table class="table bg-white" id="workload-table">
+      <thead class="table-light"><tr><th>Technician</th><th class="text-end">Active</th><th class="text-end">Max</th></tr></thead>
+      <tbody>{% for r in workload %}<tr><td>{{ r.technician_name }}</td><td class="text-end">{{ r.active_count }}</td><td class="text-end">{{ r.max_workload }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="col-lg-3">
+    <h2 class="h5">By service</h2>
+    <table class="table bg-white" id="service-table">
+      <thead class="table-light"><tr><th>Service</th><th class="text-end">Incidents</th></tr></thead>
+      <tbody>{% for r in services %}<tr><td>{{ r.label }}</td><td class="text-end">{{ r.count }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="col-lg-3">
+    <h2 class="h5">By category</h2>
+    <table class="table bg-white" id="category-table">
+      <thead class="table-light"><tr><th>Category</th><th class="text-end">Incidents</th></tr></thead>
+      <tbody>{% for r in categories %}<tr><td>{{ r.label }}</td><td class="text-end">{{ r.count }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</div>
+
+<h2 class="h5 mt-4">Related incidents (last hour)</h2>
+<p class="text-muted small">Open incidents on the same service. Three or more suggest a problem with the service itself.</p>
+{% for g in groups %}
+<div class="card shadow-sm mb-3 {% if g.is_probable_service_problem %}border-danger{% endif %}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between">
+      <strong>{{ g.service.name }}</strong>
+      {% if g.is_probable_service_problem %}<span class="badge bg-danger">Probable service problem ({{ g.incidents|length }} incidents)</span>
+      {% else %}<span class="badge bg-secondary">{{ g.incidents|length }} incidents</span>{% endif %}
+    </div>
+    <ul class="mb-0 small">
+      {% for i in g.incidents %}<li><a href="/incidents/{{ i.id }}">{{ i.ticket_number }}</a> {{ i.title }} ({{ i.created_at|dt }})</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% else %}
+<p class="text-muted">No related incidents right now.</p>
+{% endfor %}
+{% endblock %}

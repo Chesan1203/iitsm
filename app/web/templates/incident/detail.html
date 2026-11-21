@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import status_badge, priority_badge, sla_badge %}
+{% block title %}{{ incident.ticket_number }}{% endblock %}
+{% block content %}
+{% set tracker = incident.sla_tracker %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
+  <div>
+    <div class="text-muted small">{{ incident.ticket_number }}</div>
+    <h1 class="h4 mb-1">{{ incident.title }}</h1>
+    <div class="d-flex gap-2">{{ status_badge(incident.status) }} {{ priority_badge(incident.priority) }} {{ sla_badge(tracker) }}</div>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="javascript:history.back()">Back</a>
+</div>
+
+{% if incident.possible_duplicate_of %}
+<div class="alert alert-warning" role="alert" id="duplicate-warning">
+  <strong>Possible duplicate.</strong> This looks similar to {{ incident.possible_duplicate_of }}. It is still being handled normally.
+</div>
+{% endif %}
+
+<ol class="steps mb-4" aria-label="Incident progress">
+  {% for step in steps %}<li class="{{ step.state }}">{{ step.status.name|label }}</li>{% endfor %}
+</ol>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    <div class="card shadow-sm mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Description</h2>
+      <p class="mb-0" style="white-space: pre-wrap">{{ incident.description }}</p>
+    </div></div>
+
+    {% if pending_question and 'respond' in actions %}
+    <div class="card border-warning shadow-sm mb-3" id="reply-box"><div class="card-body">
+      <h2 class="h6">The technician needs more information</h2>
+      <p class="mb-2 fst-italic">&ldquo;{{ pending_question.text }}&rdquo;</p>
+      <form method="post" action="/incidents/{{ incident.id }}/respond">
+        <textarea class="form-control mb-2" name="answer" rows="3" required placeholder="Your answer"></textarea>
+        <button class="btn btn-warning btn-sm" type="submit">Send reply</button>
+      </form>
+    </div></div>
+    {% endif %}
+
+    {% if incident.notes %}
+    <div class="card shadow-sm mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Investigation notes</h2>
+      {% for n in incident.notes %}
+      <div class="border-start border-3 ps-3 mb-3 {% if n.note_type.name == 'INFO_REQUEST' %}border-warning{% elif n.note_type.name == 'INFO_RESPONSE' %}border-info{% else %}border-secondary{% endif %}">
+        <div class="small text-muted">{{ n.author.full_name }} &middot; {{ n.note_type.name|label }} &middot; {{ n.created_at|dt }}</div>
+        <div style="white-space: pre-wrap">{{ n.text }}</div>
+      </div>
+      {% endfor %}
+    </div></div>
+    {% endif %}
+
+    {% if incident.resolution %}
+    <div class="card border-success shadow-sm mb-3" id="resolution"><div class="card-body">
+      <h2 class="h6 text-uppercase text-success">Resolution</h2>
+      <p class="mb-1"><strong>{{ incident.resolution.summary }}</strong></p>
+      {% if incident.resolution.details %}<p class="mb-1" style="white-space: pre-wrap">{{ incident.resolution.details }}</p>{% endif %}
+      <div class="small text-muted">Resolved by {{ incident.resolution.resolved_by.full_name }} on {{ incident.resolution.resolved_at|dt }}</div>
+    </div></div>
+    {% endif %}
+
+    {% if incident.feedback %}
+    <div class="card shadow-sm mb-3" id="feedback"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Feedback</h2>
+      <p class="mb-0">Rated <strong>{{ incident.feedback.rating }} out of 5</strong>{% if incident.feedback.comment %}: {{ incident.feedback.comment }}{% endif %}</p>
+    </div></div>
+    {% endif %}
+
+    {# ---------- things the person viewing can do right now (a display hint; the service enforces the rules) ---------- #}
+    {% set any_action = actions|length > 0 %}
+    {% if any_action %}
+    <div class="card shadow-sm mb-3" id="actions"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Actions</h2>
+
+      {% if 'acknowledge' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/acknowledge" class="mb-2">
+        <button class="btn btn-primary btn-sm" type="submit">Acknowledge</button>
+      </form>{% endif %}
+      {% if 'start' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/start" class="mb-2">
+        <button class="btn btn-primary btn-sm" type="submit">Start investigation</button>
+      </form>{% endif %}
+
+      {% if 'note' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/note" class="mb-3">
+        <label class="form-label small" for="note-text">Add an investigation note</label>
+        <textarea class="form-control mb-2" id="note-text" name="text" rows="2" required></textarea>
+        <button class="btn btn-outline-primary btn-sm" type="submit">Add note</button>
+      </form>{% endif %}
+      {% if 'add_info' in actions and 'respond' not in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/note" class="mb-3">
+        <label class="form-label small" for="info-text">Add information for the technician</label>
+        <textarea class="form-control mb-2" id="info-text" name="text" rows="2" required></textarea>
+        <button class="btn btn-outline-primary btn-sm" type="submit">Add information</button>
+      </form>{% endif %}
+
+      {% if 'request_info' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/request-info" class="mb-3">
+        <label class="form-label small" for="question">Ask the reporter for information</label>
+        <textarea class="form-control mb-2" id="question" name="question" rows="2" required></textarea>
+        <button class="btn btn-outline-warning btn-sm" type="submit">Request information</button>
+      </form>{% endif %}
+
+      {% if 'resolve' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/resolve" class="mb-3 border rounded p-3" id="resolve-form">
+        <div class="fw-semibold mb-2">Resolve this incident</div>
+        <input class="form-control mb-2" name="summary" maxlength="200" placeholder="Summary of the fix" required>
+        <textarea class="form-control mb-2" name="details" rows="3" placeholder="Details (optional)"></textarea>
+        <button class="btn btn-success btn-sm" type="submit">Mark as resolved</button>
+      </form>{% endif %}
+
+      {% if 'verify' in actions or 'reject' in actions %}
+      <div class="d-flex flex-wrap gap-3 mb-3 align-items-start">
+        {% if 'verify' in actions %}
+        <form method="post" action="/incidents/{{ incident.id }}/verify">
+          <button class="btn btn-success btn-sm" type="submit">Verify the fix</button>
+        </form>{% endif %}
+        {% if 'reject' in actions %}
+        <form method="post" action="/incidents/{{ incident.id }}/reject" class="flex-grow-1">
+          <div class="input-group input-group-sm">
+            <input class="form-control" name="reason" placeholder="Why is it not fixed?" required>
+            <button class="btn btn-outline-danger" type="submit">Reject</button>
+          </div>
+        </form>{% endif %}
+      </div>{% endif %}
+
+      {% if 'close' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/close" class="mb-3">
+        <button class="btn btn-dark btn-sm" type="submit">Close incident</button>
+      </form>{% endif %}
+
+      {% if 'feedback' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/feedback" class="border rounded p-3" id="feedback-form">
+        <div class="fw-semibold mb-2">How did we do?</div>
+        <select class="form-select form-select-sm mb-2" name="rating" aria-label="Rating">
+          {% for n in [5, 4, 3, 2, 1] %}<option value="{{ n }}">{{ n }} out of 5</option>{% endfor %}
+        </select>
+        <textarea class="form-control mb-2" name="comment" rows="2" placeholder="Comment (optional)"></textarea>
+        <button class="btn btn-outline-primary btn-sm" type="submit">Send feedback</button>
+      </form>{% endif %}
+    </div></div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-3" id="timeline"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Timeline</h2>
+      <ul class="list-unstyled mb-0 timeline">
+        {% for r in trail %}
+        <li class="mb-2">
+          <span class="text-muted small">{{ r.timestamp|dt }}</span>
+          <strong>{{ r.action|label }}</strong>
+          <span class="text-muted">by {{ r.actor_name }}</span>
+          {% if r.description %}<div class="small">{{ r.description }}</div>{% endif %}
+        </li>
+        {% else %}<li class="text-muted">Nothing recorded yet.</li>{% endfor %}
+      </ul>
+    </div></div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Details</h2>
+      <dl class="row mb-0 small">
+        <dt class="col-5">Reporter</dt><dd class="col-7">{{ incident.reporter.full_name }}</dd>
+        <dt class="col-5">Service</dt><dd class="col-7">{{ incident.affected_service.name }}</dd>
+        <dt class="col-5">Category</dt><dd class="col-7">{{ incident.category.name }}</dd>
+        <dt class="col-5">Impact</dt><dd class="col-7">{{ incident.impact|label }}</dd>
+        <dt class="col-5">Urgency</dt><dd class="col-7">{{ incident.urgency|label }}</dd>
+        <dt class="col-5">Affected users</dt><dd class="col-7">{{ incident.affected_users }}</dd>
+        <dt class="col-5">Priority</dt>
+        <dd class="col-7">{{ priority_badge(incident.priority) }}{% if incident.priority_score %} <span class="text-muted">score {{ incident.priority_score }}</span>{% endif %}</dd>
+        <dt class="col-5">Technician</dt><dd class="col-7">{{ incident.assigned_technician.full_name if incident.assigned_technician else 'Not assigned yet' }}</dd>
+        <dt class="col-5">Escalation</dt><dd class="col-7">{{ incident.escalation_level|label }}</dd>
+        <dt class="col-5">Created</dt><dd class="col-7">{{ incident.created_at|dt }}</dd>
+      </dl>
+    </div></div>
+
+    <div class="card shadow-sm mb-3" id="sla-card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">SLA</h2>
+      {% if tracker %}
+      <dl class="row mb-2 small">
+        <dt class="col-6">Status</dt><dd class="col-6">{{ sla_badge(tracker) }}</dd>
+        <dt class="col-6">Response due</dt>
+        <dd class="col-6">{{ tracker.response_deadline|dt }}
+          {% if incident.acknowledged_at %}<div class="text-success">met {{ incident.acknowledged_at|tm }}</div>
+          {% elif tracker.response_violated %}<div class="text-danger">missed</div>{% endif %}</dd>
+        <dt class="col-6">Resolution due</dt>
+        <dd class="col-6">{{ tracker.resolution_deadline|dt }}
+          {% if incident.resolved_at %}<div class="text-success">resolved {{ incident.resolved_at|tm }}</div>
+          {% elif tracker.resolution_violated %}<div class="text-danger">missed</div>{% endif %}</dd>
+      </dl>
+      {% else %}<p class="text-muted small mb-0">The SLA starts when the incident is classified.</p>{% endif %}
+    </div></div>
+
+    {% if 'assign' in actions or 'override_priority' in actions %}
+    <div class="card shadow-sm mb-3" id="admin-panel"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Administrator tools</h2>
+      {% if 'assign' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/assign" class="mb-2">
+        <label class="form-label small" for="technician_id">{{ 'Reassign to' if incident.assigned_technician else 'Assign to' }}</label>
+        <div class="input-group input-group-sm">
+          <select class="form-select" id="technician_id" name="technician_id" required>
+            <option value="">Choose a technician...</option>
+            {% for t in technicians %}<option value="{{ t.id }}">{{ t.full_name }}{% if not t.available %} (on leave){% endif %}</option>{% endfor %}
+          </select>
+          <button class="btn btn-primary" type="submit">Assign</button>
+        </div>
+      </form>
+      <div class="d-flex gap-2 mb-3">
+        {% if 'auto_assign' in actions %}
+        <form method="post" action="/incidents/{{ incident.id }}/auto-assign"><button class="btn btn-outline-primary btn-sm" type="submit">Auto-assign</button></form>{% endif %}
+        <a class="btn btn-outline-secondary btn-sm" href="/incidents/{{ incident.id }}/recommend">Recommend technician</a>
+      </div>
+      {% endif %}
+      {% if 'override_priority' in actions %}
+      <form method="post" action="/incidents/{{ incident.id }}/priority">
+        <label class="form-label small" for="priority">Override the priority</label>
+        <select class="form-select form-select-sm mb-2" id="priority" name="priority">
+          {% for p in priorities %}<option value="{{ p.name }}"{% if p == incident.priority %} selected{% endif %}>{{ p.name }} ({{ p.label }})</option>{% endfor %}
+        </select>
+        <input class="form-control form-control-sm mb-2" name="reason" placeholder="Reason" required>
+        <button class="btn btn-outline-danger btn-sm" type="submit">Change priority</button>
+      </form>
+      {% endif %}
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

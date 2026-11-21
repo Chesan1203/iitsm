@@ -1,0 +1,139 @@
+// I-ITSM ER diagram. Paste this at https://dbdiagram.io (Import > DBML) and export a PNG
+// as docs/er_diagram.png. Mirrors app/persistence/schema.sql.
+
+Table users {
+  id integer [pk, increment]
+  username text [not null, unique]
+  full_name text [not null]
+  email text [not null]
+  password_hash text [not null]
+  role text [not null, note: 'EMPLOYEE | TECHNICIAN | ADMINISTRATOR']
+  active integer [not null, default: 1]
+  department text [note: 'Employee only']
+  admin_level text [note: 'Administrator only: TEAM_LEAD | SYSTEM_ADMIN | IT_MANAGER']
+  experience_years integer [note: 'Technician only']
+  available integer [note: 'Technician only']
+  max_workload integer [note: 'Technician only']
+}
+
+Table technician_skills {
+  user_id integer [not null, ref: > users.id]
+  skill text [not null]
+  indexes { (user_id, skill) [pk] }
+}
+
+Table categories {
+  id integer [pk, increment]
+  name text [not null, unique]
+  description text [not null]
+  required_skill text [not null]
+  active integer [not null, default: 1]
+}
+
+Table sla_policies {
+  id integer [pk, increment]
+  name text [not null]
+  is_default integer [not null, default: 0]
+}
+
+Table sla_targets {
+  policy_id integer [not null, ref: > sla_policies.id]
+  priority text [not null, note: 'P1 | P2 | P3 | P4']
+  response_minutes integer [not null]
+  resolution_minutes integer [not null]
+  indexes { (policy_id, priority) [pk] }
+}
+
+Table it_services {
+  id integer [pk, increment]
+  name text [not null, unique]
+  description text [not null]
+  business_criticality integer [not null, note: '1 to 3']
+  sla_policy_id integer [ref: > sla_policies.id, note: 'NULL = default policy']
+  active integer [not null, default: 1]
+}
+
+Table incidents {
+  id integer [pk, increment]
+  ticket_number text [unique, note: 'INC-1001 ...']
+  title text [not null]
+  description text [not null]
+  reporter_id integer [not null, ref: > users.id]
+  category_id integer [not null, ref: > categories.id]
+  service_id integer [not null, ref: > it_services.id]
+  impact integer [not null]
+  urgency integer [not null]
+  affected_users integer [not null]
+  priority text
+  priority_score integer
+  status text [not null]
+  created_at text [not null]
+  assigned_technician_id integer [ref: > users.id]
+  assigned_at text
+  acknowledged_at text
+  resolved_at text
+  verified_at text
+  closed_at text
+  escalation_level text [not null]
+  possible_duplicate_of text
+  sla_status text
+  sla_response_deadline text
+  sla_resolution_deadline text
+  sla_response_warned integer [not null]
+  sla_resolution_warned integer [not null]
+  sla_response_violated integer [not null]
+  sla_resolution_violated integer [not null]
+  resolution_summary text
+  resolution_details text
+  resolved_by_id integer [ref: > users.id]
+  resolution_at text
+  feedback_rating integer
+  feedback_comment text
+  feedback_at text
+}
+
+Table incident_notes {
+  id integer [pk, increment]
+  incident_id integer [not null, ref: > incidents.id]
+  author_id integer [not null, ref: > users.id]
+  note_type text [not null]
+  text text [not null]
+  created_at text [not null]
+}
+
+Table audit_records {
+  id integer [pk, increment]
+  incident_id integer [not null]
+  ticket_number text
+  timestamp text [not null]
+  actor_id integer [not null, note: '0 = system actor, so no foreign key']
+  actor_name text [not null]
+  action text [not null]
+  previous_status text
+  new_status text
+  description text [not null]
+}
+
+Table sla_events {
+  id integer [pk, increment]
+  incident_id integer [not null, ref: > incidents.id]
+  event_type text [not null]
+  recorded_at text [not null]
+  indexes { (incident_id, event_type) [unique] }
+}
+
+Table notifications {
+  id integer [pk, increment]
+  recipient_id integer [not null, ref: > users.id]
+  incident_id integer
+  event_type text [not null]
+  channel text [not null, note: 'IN_APP | EMAIL']
+  message text [not null]
+  created_at text [not null]
+  is_read integer [not null, default: 0]
+}
+
+Table settings {
+  key text [pk]
+  value text [not null]
+}

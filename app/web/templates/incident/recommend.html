@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Recommend a technician{% endblock %}
+{% block content %}
+<h1 class="h4 mb-1">Recommended technicians</h1>
+<p class="text-muted">For <a href="/incidents/{{ incident.id }}">{{ incident.ticket_number }}</a>: {{ incident.title }}
+  (needs <strong>{{ incident.category.required_skill }}</strong>). Score out of 100: skill 40, free capacity 30, experience 15, past work on this service 15.</p>
+<div class="table-responsive">
+  <table class="table bg-white align-middle">
+    <thead class="table-light"><tr><th>#</th><th>Technician</th><th>Score</th><th>Why</th><th></th></tr></thead>
+    <tbody>
+      {% for r in ranked %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ r.technician.full_name }}</td>
+        <td><span class="badge bg-primary">{{ r.score }}</span></td>
+        <td class="small">{{ r.reasons|join(' · ') }}</td>
+        <td>
+          <form method="post" action="/incidents/{{ incident.id }}/assign" class="m-0">
+            <input type="hidden" name="technician_id" value="{{ r.technician.id }}">
+            <button class="btn btn-sm btn-outline-primary" type="submit">Assign</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-center text-muted py-4">Nobody is available right now.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<a href="/incidents/{{ incident.id }}">Back to the incident</a>
+{% endblock %}

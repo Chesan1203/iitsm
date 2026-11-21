@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Edit service{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Edit service: {{ service.name }}</h1>
+<div class="card shadow-sm"><div class="card-body">
+  {% set action = '/admin/services/' ~ service.id ~ '/edit' %}
+  {% set submit_label = 'Save changes' %}
+  {% include "admin/_service_form.html" %}
+  <a class="btn btn-link mt-2" href="/admin/services">Back to services</a>
+</div></div>
+{% endblock %}
