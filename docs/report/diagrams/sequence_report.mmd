@@ -1,0 +1,31 @@
+%% theme=default font=15
+sequenceDiagram
+  autonumber
+  actor E as Employee
+  participant W as Web layer<br/>(route)
+  participant S as IncidentService
+  participant I as Incident<br/>(domain)
+  participant R as Repositories
+  participant O as Observers<br/>(audit, notification)
+
+  E->>W: submit the report form
+  W->>W: guard: signed in as employee
+  W->>S: create_incident(actor, request)
+  S->>S: validate the request and the actor
+  S->>R: load service and category
+  S->>R: same reporter, title and service<br/>in the last 10 minutes?
+  S->>I: build Incident (status NEW)
+  S->>S: priority strategy gives P1 to P4 and score,<br/>SLA policy gives the deadlines
+  S->>R: save (gets id and INC number)
+  S->>O: attach observers, record_creation
+  O->>R: audit record, notify reporter<br/>and administrators
+  S->>S: duplicate detector compares with open<br/>incidents on the same service (flag only)
+  S->>I: classify (system): NEW to CLASSIFIED
+  S->>R: save
+  S->>S: assignment strategy chooses a technician
+  S->>I: assign_to: CLASSIFIED to ASSIGNED
+  I->>O: event
+  O->>R: audit record, notify technician and reporter
+  S->>R: save
+  S-->>W: the incident
+  W-->>E: redirect to the incident page<br/>with confirmation messages

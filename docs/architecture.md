@@ -180,8 +180,7 @@ the demo triggers an escalation within seconds.
   wins.
 - The scheduler lives inside the web process. With several processes, each would run its own
   scheduler (the once-only rules make this safe but wasteful).
-- The system diagram above is text. A rendered diagram (PlantUML or draw.io) can be produced from
-  it for the PDF report.
+- The text diagram above is also available as a rendered picture, `docs/report/diagrams/architecture.png`.
 
 ## 8. The web layer (`app/web/`)
 

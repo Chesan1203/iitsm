@@ -1,0 +1,33 @@
+%% theme=default font=15
+sequenceDiagram
+  autonumber
+  participant T as Scheduler<br/>(every 30 s)
+  participant M as SlaMonitorJob
+  participant X as EscalationJob
+  participant D as Domain rules<br/>(SlaCalculator,<br/>EscalationPolicy)
+  participant R as Repositories
+  participant O as Observers
+
+  T->>M: run_once()
+  M->>R: find open incidents
+  loop each open incident (one failure never stops the rest)
+    M->>D: evaluate(incident, now)
+    D-->>M: new events (warning at 80%, violation), status
+    alt something new
+      M->>R: record sla_event (once only)
+      M->>O: apply_sla_result
+      O->>R: audit record, notifications
+      M->>R: save incident
+    end
+  end
+  T->>X: run_once()
+  X->>R: find unacknowledged incidents
+  loop each unacknowledged incident
+    X->>D: evaluate(incident, now)
+    D-->>X: decision (P1 only, next level) or nothing
+    alt there is a decision
+      X->>O: escalate (system actor)
+      O->>R: audit record, notify the next level
+      X->>R: save incident
+    end
+  end

@@ -6,9 +6,9 @@ Python's built-in `sqlite3` module. The domain classes know nothing about it.
 
 ## 1. Entity-relationship diagram
 
-The diagram below renders on GitHub. A PNG version for the report comes from
-`docs/er_diagram.dbml`: paste it at <https://dbdiagram.io> (Import, then DBML) and export
-`docs/er_diagram.png`.
+The diagram below renders on GitHub. The full diagram used in the report is
+`docs/report/diagrams/er.png`, drawn by `docs/report/tools/draw_diagrams.py`; `docs/er_diagram.dbml` is an
+equivalent source that can be pasted at <https://dbdiagram.io>.
 
 ```mermaid
 erDiagram

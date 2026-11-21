@@ -19,7 +19,7 @@ nine questions. Library versions are the ones pinned in `requirements.txt` and u
 | Background jobs | **APScheduler** (`BackgroundScheduler`) | 3.11.3 |
 | Tests | **pytest** and FastAPI's `TestClient` (needs **httpx**) | 9.2.0 and 0.28.1 |
 | Code checking | **ruff** | 0.17.5 |
-| Diagrams | Graphviz (class diagrams), PlantUML (use cases), dbdiagram.io (ER diagram) | n/a |
+| Diagrams | Graphviz (class diagrams), hand-drawn SVG and Mermaid rendered with Microsoft Edge (the other diagrams) | n/a |
 | Version control | Git and GitHub | n/a |
 
 ## 2. The nine questions

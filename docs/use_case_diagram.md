@@ -1,9 +1,8 @@
 # Use cases
 
-The diagram source is [`use_case_diagram.puml`](use_case_diagram.puml) (PlantUML). To make the image
-for the report, paste the file at <https://www.plantuml.com/plantuml> (or use the free PlantUML extension
-in VS Code) and export `docs/use_case_diagram.png`. The diagram has not been rendered here, so check that
-the picture is readable before it goes in the PDF.
+The rendered diagram used in the report is `docs/report/diagrams/usecase.png`, drawn by
+`docs/report/tools/draw_diagrams.py`. An equivalent PlantUML source, [`use_case_diagram.puml`](use_case_diagram.puml),
+can be rendered at <https://www.plantuml.com/plantuml>.
 
 **Actors:** Employee, Technician, Administrator, and the Scheduler (the system itself, acting on a timer).
 

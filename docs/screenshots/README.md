@@ -1,9 +1,12 @@
 # Screenshots for the report
 
-The report needs UI screenshots for each role. They could not be saved automatically, so take them
-yourself from a **fresh seeded database** (see `docs/run_instructions.md`) and save each as a PNG in this
-folder with the file name shown. Use a wide browser window (at least 1200 pixels) at 100 percent zoom so the
-desktop layout appears, and make sure the page is fully loaded (the styling comes from the internet).
+The report needs UI screenshots for each role. They are **generated automatically** by
+`docs/report/tools/take_screenshots.py`, which starts a throw-away copy of the app on a fresh seeded database,
+walks the incident "Payment page is down" through its whole life and saves the PNG files in this folder
+(it needs internet for Bootstrap and Microsoft Edge; run it from the repository root with
+`.venv\Scripts\python.exe docs\report\tools\take_screenshots.py`). To take one by hand instead, use a **fresh
+seeded database** (see `docs/run_instructions.md`), a wide browser window (at least 1200 pixels) at 100 percent
+zoom, and make sure the page is fully loaded (the styling comes from the internet).
 
 All passwords are `Password@123`. If a step needs data that the seed does not have, the third column says
 how to create it.
